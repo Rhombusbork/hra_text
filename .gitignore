@@ -1,0 +1,11 @@
+# 실제 보고서(개인정보 포함)는 커밋하지 않음
+*.hwp
+*.hwpx
+!tests/fixtures/**/*.hwpx
+
+output/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+vendor/*.jar
