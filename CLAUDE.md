@@ -117,6 +117,8 @@ tests/
 - **charPr/paraPr는 공유 객체**: 한 문단의 크기를 바꾸려고 charPr를 직접 고치면 같은 ID를 쓰는 다른 곳도 바뀐다. 항상 "원래 속성 + 변경"으로 새 조합을 만들고 → 같은 조합이 이미 있으면 재사용, 없으면 header에 추가 → 런의 IDRef만 교체.
 - **linesegarray**: 레이아웃 캐시. 서식을 바꾸면 값이 맞지 않게 되므로 수정한 문단의 `hp:linesegarray`를 제거한다 (한글이 열 때 다시 계산). 열리는지 실제 한글로 검증 필요.
 - **메모 범위**: 텍스트 범위에 메모를 달려면 런을 분할해 fieldBegin/fieldEnd 컨트롤을 끼워 넣는다. 샘플 구조: `hp:ctrl > hp:fieldBegin[type=MEMO] > hp:parameters + hp:subList > hp:p` … `hp:ctrl > hp:fieldEnd[beginIDRef]`.
+- **문단 여백 단위**: `hh:paraPr`의 여백·줄간격은 `hp:switch` 안 `hp:case`(1pt=100)와 `hp:default`(1pt=200) 두 벌이 있다. 둘 다 같은 pt로 맞춰야 한다 (FORMAT_RULES §0 ※).
+- **텍스트 추출**: `hp:t` 안의 `hp:tab`/`hp:lineBreak` 뒤 tail 텍스트까지 읽는다.
 - **원본 보존**: 입력 파일은 절대 덮어쓰지 않는다. 출력은 `output/{원본명}_피드백.hwpx`.
 - **메모 정책**: 고친 것마다 메모 (수정 문단 1개당 메모 1개, 여러 규칙은 한 메모에 묶음). 상세는 FORMAT_RULES §3.
 - **양식 안내문**: 템플릿의 붉은 글씨(`#FF0000`)는 지워야 할 안내문(R15). 반대로 H1 칸의 흰 글씨·검은 배경, 표지 표 항목명의 회색 글씨는 템플릿 디자인이라 유지(R13 예외).
@@ -130,8 +132,8 @@ tests/
 
 | 단계 | 작업 | 완료 기준 |
 |---|---|---|
-| 0 | 환경: venv, `requirements.txt`(lxml, olefile, pytest), hwp2hwpx 빌드(Java 21 있음, Maven 필요) | `hra-fix --version` |
-| 1 | hwp→hwpx 변환 검증: 기업실무 전/후 hwp를 변환 → 한글에서 열림 확인(사용자) | 변환본이 한글에서 깨지지 않음 |
+| 0 | 환경: venv, `requirements.txt`, hwp2hwpx 빌드(`scripts/build_hwp2hwpx.sh`, Maven 없이 javac) | ✅ 2026-10-29 |
+| 1 | hwp→hwpx 변환 검증: 샘플 5종 변환, pyhwp로 읽은 원본과 문단 단위 비교(글자·스타일·크기·볼드·정렬·여백 모두 일치) → 한글에서 열림 확인(사용자) | 자동 비교 ✅ / 사용자 확인 대기 |
 | 2 | hwpx 입출력: 열고 그대로 저장 → 한글에서 열림 | test_roundtrip |
 | 3 | header 레지스트리 + `--dump` (문단별 역할/스타일/크기/정렬 표) | 샘플 dump가 위 분석과 일치 |
 | 4 | 역할 분류기 | 샘플 3종 역할표를 사용자 확인 |
@@ -144,7 +146,7 @@ tests/
 ## 개발 명령
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+./scripts/build_hwp2hwpx.sh            # vendor/hwp2hwpx-cli.jar 생성 (Java 필요)
 .venv/bin/pytest
-.venv/bin/python -m hra_text.cli samples/ -o output/
+.venv/bin/hra-fix convert <hwp 파일|폴더> -o output   # hwp → hwpx (원본 유지)
 ```
-(단계 0 이후 실제 명령으로 갱신)

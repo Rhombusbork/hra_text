@@ -21,15 +21,22 @@
 | └ 글자 색 | | | `hh:charPr@textColor` |
 | **문단 모양** | Alt+T | 정렬, 들여쓰기, 여백, 문단 위/아래 간격, 줄 간격 | `hp:p@paraPrIDRef` → `hh:paraPr` |
 | └ 정렬 | | 양쪽/왼쪽/가운데/오른쪽 | `hh:paraPr/hh:align@horizontal` = `JUSTIFY`/`LEFT`/`CENTER`/`RIGHT` |
-| └ 들여쓰기(첫 줄) | | **pt × 200** (10pt = `2000`) ※ 샘플로 확인됨 | `hh:margin/hc:intent@value` |
-| └ 왼쪽/오른쪽 여백 | | pt × 200 | `hc:left`, `hc:right` |
-| └ 문단 위/아래 간격 | | pt × 200 | `hc:prev`, `hc:next` |
+| └ 들여쓰기(첫 줄) | | 단위 주의(아래 ※) | `hh:margin/hc:intent@value` |
+| └ 왼쪽/오른쪽 여백 | | 단위 주의(아래 ※) | `hc:left`, `hc:right` |
+| └ 문단 위/아래 간격 | | 단위 주의(아래 ※) | `hc:prev`, `hc:next` |
 | └ 줄 간격 | | % | `hh:lineSpacing@type="PERCENT" @value` |
 | **셀 음영(배경)** | 표 > 셀 테두리/배경 (L) | 표 칸의 배경색 | `hp:tc@borderFillIDRef` → `hh:borderFill/hc:fillBrush` |
 | **머리행** | | 표의 첫 줄(제목 줄). 예: "배경 / 제도의 목적" | `hp:tbl/hp:tr[1]` |
 | **글자처럼 취급** | 개체 속성 | 표/그림이 글자 한 개처럼 줄 안에 놓이게 하는 옵션 | `hp:tbl/hp:pos@treatAsChar`, `hp:pic/hp:pos@treatAsChar` = `1` |
 | **쪽 번호** | 쪽 > 쪽 번호 매기기 | | `hp:ctrl/hp:pageNum`, 머리말/꼬리말 안 `hp:autoNum[@numType=PAGE]` |
 | **메모** | 입력 > 메모 | 본문 범위에 다는 코멘트 | `hp:ctrl/hp:fieldBegin@type="MEMO"` … `hp:fieldEnd` |
+
+> ※ **문단 여백·간격 단위 (샘플·hwp2hwpx 소스로 확인)**: `hh:paraPr`의 여백은 두 형태로 저장된다.
+> - `hp:switch/hp:case[@required-namespace=".../HwpUnitChar"]/hh:margin` — **1pt = 100** (10pt = `1000`). 최신 한글이 읽는 값. `unit="CHAR"`면 글자 단위.
+> - `hp:switch/hp:default/hh:margin` 또는 switch 없이 바로 있는 `hh:margin` — **1pt = 200** (10pt = `2000`). 피드백본(한글 저장)이 이 형태.
+> - 줄 간격도 같은 구조(`hp:case`와 `hp:default`의 `hh:lineSpacing`). 수정할 때는 **두 형태를 모두** 같은 pt 값으로 맞춘다.
+>
+> ※ **텍스트 추출**: `hp:t` 안에 `hp:tab`, `hp:lineBreak` 같은 요소가 끼어 있을 수 있다. 글자를 읽을 때 각 요소의 tail 텍스트까지 포함한다.
 
 > 예: "출처는 **바탕글 스타일**, **글꼴** 맑은 고딕, **글자 크기** 8pt, **정렬** 오른쪽"
 
@@ -250,5 +257,6 @@
 | 날짜 | 변경 | 관련 코드 |
 |---|---|---|
 | 2026-10-28 | 최초 작성 (샘플 7종 분석 기반) | — |
+| 2026-10-29 | §0 단위 정정: 문단 여백은 hp:case(1pt=100)와 hp:default/일반(1pt=200) 두 형태로 저장됨. 텍스트 추출 시 hp:tab/hp:lineBreak tail 포함 | — |
 | 2026-10-29 | Q4~Q7 해결: REFLECTION_NAME(이름 줄 10pt 진하게, 들여쓰기 10pt) 추가, AUTHOR_TAG 8pt 오른쪽 확정, R13 템플릿 디자인 예외 유지 확정, H4 10pt 근거 명시 | — |
 | 2026-10-29 | 사용자 답변 반영: R12 보류, R11 규칙·사전 기반만, 고친 것마다 메모, 본문·표 볼드 금지, 표 안 바탕글/10pt/양쪽/셀 음영 제거, 원본 보존. R15(붉은 안내문 삭제), R16(쪽 번호 제거) 추가. 용어(셀 음영, 머리행, 글자 색) 추가 | — |
