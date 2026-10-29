@@ -1,0 +1,52 @@
+# 윈도우 배포판 빌드: HRA_Tool.zip (Python·작은 Java·hwp2hwpx 포함, 설치 불필요)
+# 결과는 Actions 실행 화면의 Artifacts 에서 받는다. (자동 공개 배포는 하지 않음)
+name: windows-build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [hwpx-xml]
+    paths: ["hra_text/**", "packaging/**", "scripts/**", "tools/**", "pyproject.toml", ".github/workflows/windows-build.yml"]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: hwp2hwpx 빌드
+        run: ./scripts/build_hwp2hwpx.sh
+      - name: 테스트
+        run: |
+          python -m pip install -q -e . pytest
+          python -m pytest -q
+      - name: 작은 Java 만들기 (jlink)
+        run: jlink --add-modules java.base,java.xml --strip-debug --no-man-pages --no-header-files --compress=zip-6 --output runtime
+      - name: exe 만들기 (PyInstaller)
+        run: |
+          python -m pip install -q pyinstaller
+          python -m PyInstaller --noconfirm --windowed --name HRA_Tool \
+            --collect-submodules hra_text \
+            --add-data "vendor/hwp2hwpx-cli.jar;vendor" \
+            --add-data "hra_text/rules/spacing_dict.tsv;hra_text/rules" \
+            packaging/hra_tool.py
+          cp -r runtime dist/HRA_Tool/runtime
+          cp docs/사용법.md dist/HRA_Tool/사용법.md
+      - name: 배포판 점검 (exe 로 합성 문서 고치기)
+        run: |
+          python -c "import sys; sys.path.insert(0,'tests'); import conftest, pathlib; conftest.build_hwpx(pathlib.Path('smoke.hwpx'))"
+          HRA_NO_DIALOG=1 ./dist/HRA_Tool/HRA_Tool.exe smoke.hwpx || true
+          test -f 결과/smoke_피드백.hwpx
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HRA_Tool
+          path: dist/HRA_Tool

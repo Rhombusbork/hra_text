@@ -54,3 +54,13 @@ def test_common_memo_templates_in_section3():
     section3 = text.split("## 3. 메모", 1)[1].split("\n## 4.", 1)[0]
     for key, tpl in COMMON.items():
         assert tpl in section3, f"COMMON.{key} 문구가 FORMAT_RULES §3 에 없습니다:\n{tpl}"
+
+
+def test_rule_module_list_complete():
+    """배포판용 고정 목록(RULE_MODULES)에 규칙 파일이 빠짐없이 있어야 한다."""
+    import pkgutil
+
+    import hra_text.rules as rules
+
+    found = {m.name for m in pkgutil.iter_modules(rules.__path__) if m.name.startswith("r") and m.name[1:3].isdigit()}
+    assert found == set(rules.RULE_MODULES)

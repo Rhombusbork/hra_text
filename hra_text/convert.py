@@ -6,12 +6,12 @@
 from __future__ import annotations
 
 import os
-import shutil
 import subprocess
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_JAR = ROOT / "vendor" / "hwp2hwpx-cli.jar"
+from .paths import java_path, jar_path
+
+DEFAULT_JAR = jar_path()
 
 
 class ConvertError(RuntimeError):
@@ -19,7 +19,7 @@ class ConvertError(RuntimeError):
 
 
 def find_jar() -> Path:
-    jar = Path(os.environ.get("HRA_HWP2HWPX_JAR", DEFAULT_JAR))
+    jar = jar_path()
     if not jar.is_file():
         raise ConvertError(f"{jar} 가 없습니다. scripts/build_hwp2hwpx.sh 를 먼저 실행하세요.")
     return jar
@@ -32,13 +32,15 @@ def hwp_to_hwpx(src: Path, dst: Path, *, timeout: int = 120) -> Path:
         raise ConvertError(f"hwp 파일이 아닙니다: {src.name}")
     if src == dst:
         raise ConvertError("원본을 덮어쓸 수 없습니다.")
-    java = shutil.which("java")
+    java = java_path()
     if java is None:
         raise ConvertError("java 가 설치되어 있지 않습니다.")
     dst.parent.mkdir(parents=True, exist_ok=True)
+    flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0  # 배포판에서 검은 창이 뜨지 않게
     proc = subprocess.run(
         [java, "-jar", str(find_jar()), str(src), str(dst)],
-        capture_output=True, text=True, timeout=timeout,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout,
+        creationflags=flags,
     )
     if proc.returncode != 0 or not dst.is_file():
         raise ConvertError(f"변환 실패: {src.name}\n{proc.stderr.strip()}")

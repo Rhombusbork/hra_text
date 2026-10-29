@@ -16,10 +16,16 @@ def register(rule_cls):
     return rule_cls
 
 
+# 배포판(PyInstaller)에서 모듈 목록 찾기가 안 될 때를 대비한 고정 목록. 규칙 파일을 추가하면 여기에도 추가.
+RULE_MODULES = ("r01_style", "r02_font", "r03_size_bold", "r04_align", "r05_indent", "r06_spacing",
+                "r07_objects", "r08_source", "r09_blank_lines", "r10_leading_space", "r11_spacing",
+                "r13_defaults", "r14_toc", "r15_guide", "r16_page_number")
+
+
 def _load_all() -> None:
-    for mod in pkgutil.iter_modules(__path__):
-        if mod.name.startswith("r") and mod.name[1:3].isdigit():
-            importlib.import_module(f"{__name__}.{mod.name}")
+    found = {m.name for m in pkgutil.iter_modules(__path__) if m.name.startswith("r") and m.name[1:3].isdigit()}
+    for name in sorted(found | set(RULE_MODULES)):
+        importlib.import_module(f"{__name__}.{name}")
 
 
 _load_all()

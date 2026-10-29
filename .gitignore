@@ -12,3 +12,10 @@ __pycache__/
 
 # scripts/build_hwp2hwpx.sh 가 받아서 만드는 것들
 vendor/
+
+# 배포판 빌드 부산물
+build/
+dist/
+runtime/
+*.spec
+결과/

@@ -150,7 +150,7 @@ tests/
 | 7 | R15 안내문 삭제, R16 쪽 번호, R09 빈 줄(줄이기만), R10 앞 공백, R13 숨은 서식, R14 목차 대조 | ✅ 2026-10-29. 고전 템플릿 붉은 글씨 5곳 삭제, 경영서 피드백 메모의 빈 줄 지적 재현, 결과 재실행 시 변경·메모 0 |
 | 8 | R11 띄어쓰기(규칙·사전) | ✅ 2026-10-29. 기업실무 사용자 수정(직종별 유연근무제 제안, 경영학과 4학년, AI 시대 S2W의) 재현 + 붙은 글자 5건 사전 등록 |
 | 9 | **합본 제작** (`hra-merge`, 별도 프로그램) — 아래 "9단계 합본 계획" | ✅ 2026-10-29 자동 검사(참조·그림·필드·ID 이상 0, 메모 0) / **한글에서 열림 확인 대기** |
-| 10 | 일괄 처리, 보고서, README, **배포: 윈도우용 실행 파일**(Python·Java 동봉, hwp를 exe에 끌어다 놓기, GitHub Releases에 zip) — 사용자 본인 + 다른 사람도 쓸 수 있게 [U] 2026-10-29 | 설치 없이 다른 PC에서 실행 |
+| 10 | **배포**: 창 프로그램 `HRA_Tool.exe`(서식 교정·합본·메일 탭, exe에 끌어다 놓기, `--mail-check`) + 메일 자동 교정 `hra-mail`. GitHub Actions(windows-latest)에서 jlink Java + PyInstaller로 빌드 → Actions Artifacts. 사용법 [docs/사용법.md](docs/사용법.md) | 빌드 구성 ✅ / 윈도우 실행 확인 대기 |
 
 ## 9단계 합본 계획 (2026-10-29, 계획만 — 사용자 결정 반영)
 
@@ -198,6 +198,14 @@ hra-merge 폴더 --cover …                                  # 폴더면 종류
 - 그림 수·쪽 나누기 수, 메모 0개, 다시 열고 저장해도 깨지지 않는지.
 - 사용자가 한글에서 열어 확인.
 
+## 10단계 배포·메일 구조 (2026-10-29)
+- `hra_text/paths.py`: 개발 폴더/배포판 경로. 배포판은 `HRA_Tool/runtime/bin/java.exe`(jlink, java.base+java.xml), `_internal/vendor/hwp2hwpx-cli.jar`.
+- `hra_text/gui.py`: tkinter 창(서식 교정 / 합본(▲▼ 순서, 참고 합본 기억) / 메일). 인수로 파일을 주면 창 없이 교정(exe에 끌어다 놓기), `--mail-check`는 창 없이 메일 한 번 확인(작업 스케줄러용). `HRA_NO_DIALOG=1`이면 알림 창 없이(빌드 점검용).
+- `hra_text/mail.py` (`hra-mail setup|check|watch`): 네이버 IMAP(imap.naver.com:993, 앱 비밀번호), 읽기 전용(BODY.PEEK), UID 상태 파일로 중복 방지, 첫 실행은 오늘 메일부터, **답장 안 함**. 첨부 → `받은파일/날짜/`, 결과 → `결과/날짜/`, `처리기록.csv`. 설정·상태는 `%APPDATA%/HRA보고서도구/` (저장소 밖).
+- 표지 양식(참고 합본)은 배포판에 넣지 않는다(공개 저장소). 사용자가 한 번 골라 두면 기억.
+- `rules/__init__.py`의 `RULE_MODULES` 고정 목록: 배포판에서 규칙 모듈 자동 찾기가 안 될 때 대비. 규칙 파일 추가 시 함께 갱신(테스트가 검사).
+- 빌드: `.github/workflows/windows-build.yml` — hwp2hwpx 빌드 → 테스트 → jlink → PyInstaller → exe로 합성 문서 교정 점검 → Artifacts 업로드. (자동 공개 배포 안 함)
+
 ## 개발 명령
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
@@ -209,4 +217,6 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
                                        # → <이름>_피드백.hwpx(메모 포함) + <이름>_변경내역.txt
 .venv/bin/hra-fix compare <우리 결과.hwpx> <사람 수정본>      # 서식 차이 요약
 .venv/bin/hra-merge <파일…> --cover <참고 합본.hwpx> [-o output/합본.hwpx] [--date …] [--order 목록.txt]  # 합본 (메모 제거)
+.venv/bin/hra-mail setup | check | watch --minutes 5   # 네이버 메일 첨부 자동 교정 (답장 안 함)
+.venv/bin/python -m hra_text.gui                     # 창 (윈도우 Python 필요: tkinter)
 ```
