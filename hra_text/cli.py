@@ -24,6 +24,24 @@ def _cmd_convert(args: argparse.Namespace) -> int:
     return 1 if failed else 0
 
 
+def _cmd_dump(args: argparse.Namespace) -> int:
+    from .document import Document
+    from .dump import render
+
+    for src in _collect(args.inputs, ".hwp") + _collect(args.inputs, ".hwpx"):
+        doc = Document.open(src)
+        text = render(doc, width=args.width, include_skip=args.all)
+        if args.output:
+            out = Path(args.output) / (src.stem + "_dump.txt")
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(text + "\n", encoding="utf-8")
+            print(f"OK   {src.name} -> {out}")
+        else:
+            print(f"===== {src.name}")
+            print(text)
+    return 0
+
+
 def _collect(inputs: list[str], suffix: str) -> list[Path]:
     files: list[Path] = []
     for item in map(Path, inputs):
@@ -43,6 +61,13 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("inputs", nargs="+", help="hwp 파일 또는 폴더")
     p.add_argument("-o", "--output", default="output", help="출력 폴더 (기본: output)")
     p.set_defaults(func=_cmd_convert)
+
+    p = sub.add_parser("dump", help="문단별 역할·서식 표 출력")
+    p.add_argument("inputs", nargs="+", help="hwp/hwpx 파일 또는 폴더")
+    p.add_argument("-o", "--output", help="지정하면 폴더에 <이름>_dump.txt 로 저장")
+    p.add_argument("--width", type=int, default=50, help="내용 표시 글자 수")
+    p.add_argument("--all", action="store_true", help="메모·머리말 등(SKIP)도 표시")
+    p.set_defaults(func=_cmd_dump)
 
     args = parser.parse_args(argv)
     return args.func(args)
