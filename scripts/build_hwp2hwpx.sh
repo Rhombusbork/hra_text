@@ -13,6 +13,12 @@ declare -A JARS=(
 
 mkdir -p "$VENDOR/lib" "$VENDOR/src"
 
+# 윈도우(Git Bash)의 javac/jar 는 /d/a/... 같은 경로를 못 읽는다 → C:/... 형태로, 클래스 경로 구분자는 ;
+case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*) winpath() { cygpath -m "$1"; }; SEP=";" ;;
+  *) winpath() { printf '%s' "$1"; }; SEP=":" ;;
+esac
+
 for name in "${!JARS[@]}"; do
   read -r path sha <<<"${JARS[$name]}"
   dest="$VENDOR/lib/$name"
@@ -33,14 +39,14 @@ fi
 
 BUILD="$(mktemp -d)"
 trap 'rm -rf "$BUILD"' EXIT
-CP="$VENDOR/lib/hwplib-1.1.10.jar:$VENDOR/lib/hwpxlib-1.0.9.jar"
+CP="$(winpath "$VENDOR/lib/hwplib-1.1.10.jar")$SEP$(winpath "$VENDOR/lib/hwpxlib-1.0.9.jar")"
 
-find "$SRC/src/main/java" -name '*.java' > "$BUILD/sources.txt"
-echo "$ROOT/tools/hwp2hwpx/Hwp2HwpxCli.java" >> "$BUILD/sources.txt"
-javac -encoding UTF-8 -nowarn -d "$BUILD/classes" -cp "$CP" @"$BUILD/sources.txt"
+find "$SRC/src/main/java" -name '*.java' | while read -r f; do winpath "$f"; echo; done > "$BUILD/sources.txt"
+winpath "$ROOT/tools/hwp2hwpx/Hwp2HwpxCli.java" >> "$BUILD/sources.txt"
+javac -encoding UTF-8 -nowarn -d "$(winpath "$BUILD/classes")" -cp "$CP" @"$(winpath "$BUILD/sources.txt")"
 
 # 의존 jar를 풀어 하나의 실행 jar로 묶는다
-(cd "$BUILD/classes" && for j in "$VENDOR"/lib/*.jar; do jar xf "$j"; done && rm -rf META-INF)
+(cd "$BUILD/classes" && for j in "$VENDOR"/lib/*.jar; do jar xf "$(winpath "$j")"; done && rm -rf META-INF)
 printf 'Main-Class: Hwp2HwpxCli\n' > "$BUILD/manifest.txt"
-jar cfm "$VENDOR/hwp2hwpx-cli.jar" "$BUILD/manifest.txt" -C "$BUILD/classes" .
+jar cfm "$(winpath "$VENDOR/hwp2hwpx-cli.jar")" "$(winpath "$BUILD/manifest.txt")" -C "$(winpath "$BUILD/classes")" .
 echo "built $VENDOR/hwp2hwpx-cli.jar"

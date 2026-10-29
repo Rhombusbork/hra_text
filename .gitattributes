@@ -1,0 +1,5 @@
+# 윈도우 빌드에서도 bash 스크립트·사전이 LF 줄바꿈을 유지하도록
+*.sh  text eol=lf
+*.tsv text eol=lf
+*.py  text eol=lf
+*.yml text eol=lf
