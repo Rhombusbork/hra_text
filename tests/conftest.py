@@ -110,6 +110,9 @@ def p(text="", char=0, para=0, style=0, inner="", after=""):
     )
 
 
+_TABLE_IDS = iter(range(100, 10**6))
+
+
 def table(rows, *, treat_as_char=True, fill="1", col_span_first=1, vert_offset=0):
     """rows: [[cell_paragraphs_xml, ...], ...]"""
     n_rows, n_cols = len(rows), max(len(r) for r in rows)
@@ -126,7 +129,7 @@ def table(rows, *, treat_as_char=True, fill="1", col_span_first=1, vert_offset=0
             )
         trs.append("<hp:tr>" + "".join(tcs) + "</hp:tr>")
     return (
-        f'<hp:tbl id="1" rowCnt="{n_rows}" colCnt="{n_cols}" borderFillIDRef="1">'
+        f'<hp:tbl id="{next(_TABLE_IDS)}" rowCnt="{n_rows}" colCnt="{n_cols}" borderFillIDRef="1">'
         f'<hp:sz width="1000" height="1000"/><hp:pos treatAsChar="{int(treat_as_char)}" '
         f'vertRelTo="PARA" horzRelTo="PARA" vertOffset="{vert_offset}" horzOffset="0"/>'
         + "".join(trs) + "</hp:tbl>"
@@ -191,14 +194,50 @@ SECTION_BODY = "".join([
 SECTION = DECL + f"<hs:sec {NS_DECL}>{SECTION_BODY}</hs:sec>"
 
 
-def build_hwpx(path: Path, header: str = HEADER, section: str = SECTION) -> Path:
+def build_hwpx(path: Path, header: str = HEADER, section: str = SECTION, *,
+               sections: list[str] | None = None, bins: dict[str, bytes] | None = None) -> Path:
+    """sections 를 주면 section0, section1 … 로 여러 구역. bins 를 주면 BinData + content.hpf 목록."""
+    sections = sections or [section]
     with zipfile.ZipFile(path, "w") as z:
         z.writestr(zipfile.ZipInfo("mimetype"), "application/hwp+zip", compress_type=zipfile.ZIP_STORED)
         z.writestr("version.xml", DECL + "<hv:HCFVersion xmlns:hv=\"http://www.hancom.co.kr/hwpml/2011/version\"/>",
                    compress_type=zipfile.ZIP_DEFLATED)
         z.writestr("Contents/header.xml", header, compress_type=zipfile.ZIP_DEFLATED)
-        z.writestr("Contents/section0.xml", section, compress_type=zipfile.ZIP_DEFLATED)
+        for i, sec in enumerate(sections):
+            z.writestr(f"Contents/section{i}.xml", sec, compress_type=zipfile.ZIP_DEFLATED)
+        items = "".join(f'<opf:item id="section{i}" href="Contents/section{i}.xml" media-type="application/xml"/>'
+                        for i in range(len(sections)))
+        for name, data in (bins or {}).items():
+            z.writestr(f"BinData/{name}", data, compress_type=zipfile.ZIP_STORED)
+            items += (f'<opf:item id="{Path(name).stem}" href="BinData/{name}" media-type="image/png" '
+                      f'isEmbeded="1"/>')
+        z.writestr("Contents/content.hpf", DECL + '<opf:package xmlns:opf="http://www.idpf.org/2007/opf/">'
+                   f'<opf:manifest>{items}</opf:manifest></opf:package>', compress_type=zipfile.ZIP_DEFLATED)
     return path
+
+
+def section_xml(body: str) -> str:
+    return DECL + f"<hs:sec {NS_DECL}>{body}</hs:sec>"
+
+
+PIC = ('<hp:pic id="5"><hp:pos treatAsChar="1"/><hc:img binaryItemIDRef="{ref}" bright="0" contrast="0" '
+       'effect="REAL_PIC" alpha="0"/></hp:pic>')
+
+
+def build_reference_hapbon(path: Path) -> Path:
+    """참고 합본 흉내: 구역0 표지(그림), 구역1 일정표 + 옛 문서."""
+    cover = section_xml(p(inner=PIC.format(ref="image1")) + p("HRA 20기") + p("2026.10.24.(토)"))
+    old_doc = p("■ 고전명작", char=1).replace('pageBreak="0"', 'pageBreak="1"', 1) + p("옛 문서 본문")
+    body = section_xml(
+        p(inner=table([[p("HRA 20기") + p("2026.10.24.(토)")]]))
+        + p("■ 고전 명작 (9:00~12:00)", char=1)
+        + p(inner=table([[p("도서명 (저자)"), p("분류"), p("발표자")], [p("옛 책"), p("읽고 발표"), p("홍길동")]]))
+        + p("■ 특강 (13:00~14:00)", char=1) + p("옛 특강 제목")
+        + p("■ 경영서 리뷰 (14:00~)", char=1)
+        + p(inner=table([[p("도서명 (저자)"), p("발표자")], [p("옛 경영서"), p("김철수")]]))
+        + old_doc + p(inner=PIC.format(ref="image2"))
+    )
+    return build_hwpx(path, sections=[cover, body], bins={"image1.png": b"COVER", "image2.png": b"OLD"})
 
 
 @pytest.fixture

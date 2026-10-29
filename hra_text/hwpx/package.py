@@ -62,6 +62,27 @@ class HwpxPackage:
     def sections(self) -> list[etree._Element]:
         return [self.xml(n) for n in self.section_names()]
 
+    def raw(self, name: str) -> bytes:
+        """항목의 원래 바이트 (그림 등)."""
+        return self._raw[name]
+
+    def info(self, name: str) -> zipfile.ZipInfo:
+        return next(i for i in self._infos if i.filename == name)
+
+    def add(self, name: str, data: bytes, *, compress_type: int = zipfile.ZIP_DEFLATED) -> None:
+        """새 항목 추가 (같은 이름이 있으면 덮어씀)."""
+        if name in self._raw:
+            self.remove(name)
+        info = zipfile.ZipInfo(name, date_time=(2026, 1, 1, 0, 0, 0))
+        info.compress_type = compress_type
+        self._infos.append(info)
+        self._raw[name] = data
+
+    def remove(self, name: str) -> None:
+        self._infos = [i for i in self._infos if i.filename != name]
+        self._raw.pop(name, None)
+        self._trees.pop(name, None)
+
     # ---- 저장 ------------------------------------------------------
     def serialize(self, name: str) -> bytes:
         if name in self._trees:
