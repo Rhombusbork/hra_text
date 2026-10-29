@@ -40,7 +40,7 @@ HRA 20기 보고서(경영서·기업실무·고전) hwp/hwpx 파일을 양식�
 | 표지 영역 들여쓰기 | 10pt | 0 | R05 |
 | 표 안 글자 | 8.5pt | 10pt | R03 |
 | 표 안 문단 | 왼쪽 정렬, 위/아래 간격 1pt, 줄간격 110% | 양쪽, 0, 160% | R04 R06 |
-| 표지 정보 표 | 오른쪽 정렬, MS바탕글 | 가운데, 바탕글 | R04 R14 |
+| 표지 정보 표 (셀 안 글자) | 오른쪽 정렬, MS바탕글 | 가운데, 바탕글 | R04 R14 |
 | 띄어쓰기 | 직종별유연근무제제안, 경영학과4학년 | 직종별 유연근무제 제안, 경영학과 4학년 | R11 |
 | 표지 빈 줄 배치 | — | 제목 위치 조정 | R14 |
 
@@ -100,8 +100,9 @@ hra_text/
     header.py         # charPr/paraPr/style/font 레지스트리: "이 속성 조합의 ID 찾기/없으면 생성"
     section.py        # 문단/런/표/그림 순회, 텍스트 범위 위치(path) 표현
     edit.py           # 글자/문단 모양 바꾸기(derive → IDRef 교체), 레이아웃 캐시 삭제
-    memo.py           # (6단계) fieldBegin(MEMO)/fieldEnd 삽입, ID·번호 부여
+    memo.py           # fieldBegin(MEMO)/fieldEnd XML 삽입, 번호·작성자·작성 시각
   model.py            # Change (규칙이 남기는 변경 기록)
+  memo.py             # Change → 메모 계획(본문 문단당·표당 1개, 빈 줄 합침) → 문구(첫 회 전체/이후 짧게)
   classify.py         # 역할 분류 (FORMAT_RULES §1)
   rules/
     __init__.py       # REGISTRY, register (r??_*.py 자동 로드)
@@ -126,7 +127,7 @@ tests/
 - **문단 여백 단위**: `hh:paraPr`의 여백·줄간격은 `hp:switch` 안 `hp:case`(1pt=100)와 `hp:default`(1pt=200) 두 벌이 있다. 둘 다 같은 pt로 맞춰야 한다 (FORMAT_RULES §0 ※).
 - **텍스트 추출**: `hp:t` 안의 `hp:tab`/`hp:lineBreak` 뒤 tail 텍스트까지 읽는다.
 - **원본 보존**: 입력 파일은 절대 덮어쓰지 않는다. 출력은 `output/{원본명}_피드백.hwpx`.
-- **메모 정책**: 고친 것마다 메모 (수정 문단 1개당 메모 1개, 여러 규칙은 한 메모에 묶음). 상세는 FORMAT_RULES §3.
+- **메모 정책**: 고친 것마다 메모 — 본문 문단 1개당 1개, 표 1개당 1개, 빈 줄은 다음 글자 문단 메모에 합침. 상세는 FORMAT_RULES §3.
 - **양식 안내문**: 템플릿의 붉은 글씨(`#FF0000`)는 지워야 할 안내문(R15). 반대로 H1 칸의 흰 글씨·검은 배경, 표지 표 항목명의 회색 글씨는 템플릿 디자인이라 유지(R13 예외).
 
 ### R12 (쪽 나누기) — 보류
@@ -144,7 +145,7 @@ tests/
 | 3 | header 레지스트리 + `hra-fix dump` (문단별 역할/스타일/크기/정렬 표) | ✅ |
 | 4 | 역할 분류기 (FORMAT_RULES §1) | 자동 테스트 ✅ / 샘플 역할표 사용자 확인 대기 |
 | 5 | R01~R08 서식 규칙 + `fix`/`compare` | ✅ 2026-10-29. 기업실무: 짝지은 512문단 중 차이는 전부 수정본 쪽 누락(표 안 왼쪽 정렬·MS바탕글·8.5pt, 출처 10pt 등). 재실행 시 변경 0건 |
-| 6 | 메모 삽입 + 묶기 | 경영서 결과에 피드백본과 같은 문체 메모 |
+| 6 | 메모 삽입 + 묶기 | ✅ 2026-10-29 자동 테스트. 기업실무 161개·경영서 63개·고전 7개, fieldBegin/End 짝 모두 일치 / **한글에서 열림 확인 대기** |
 | 7 | R15 안내문 삭제, R16 쪽 번호, R09 빈 줄, R10 공백, R13 기본값 복원, R14 표지/목차 | 템플릿을 넣으면 붉은 글씨가 모두 사라짐 |
 | 8 | R11 띄어쓰기(규칙·사전) | 기업실무 띄어쓰기 수정 재현 |
 | 9 | 일괄 처리, 보고서, README, **배포: 윈도우용 실행 파일**(Python·Java 동봉, hwp를 exe에 끌어다 놓기, GitHub Releases에 zip) — 사용자 본인 + 다른 사람도 쓸 수 있게 [U] 2026-10-29 | 설치 없이 다른 PC에서 실행 |
@@ -156,6 +157,7 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/pytest
 .venv/bin/hra-fix convert <hwp 파일|폴더> -o output   # hwp → hwpx (원본 유지)
 .venv/bin/hra-fix dump <hwp/hwpx 파일|폴더> [-o output]  # 문단별 역할·서식 표
-.venv/bin/hra-fix fix <hwp/hwpx 파일|폴더> [-o output] [--rules R01,R03]  # → <이름>_피드백.hwpx + <이름>_변경내역.txt
+.venv/bin/hra-fix fix <hwp/hwpx 파일|폴더> [-o output] [--rules R01,R03] [--no-memo] [--author 이름]
+                                       # → <이름>_피드백.hwpx(메모 포함) + <이름>_변경내역.txt
 .venv/bin/hra-fix compare <우리 결과.hwpx> <사람 수정본>      # 서식 차이 요약
 ```
