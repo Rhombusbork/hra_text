@@ -96,12 +96,12 @@ HEADER = (
 )
 
 
-def p(text="", char=0, para=0, style=0, inner=""):
+def p(text="", char=0, para=0, style=0, inner="", after=""):
     body = escape(text).replace("\t", '<hp:tab width="1000" leader="0" type="1"/>')
     t = f"<hp:t>{body}</hp:t>" if text else ""
     return (
         f'<hp:p id="0" paraPrIDRef="{para}" styleIDRef="{style}" pageBreak="0" columnBreak="0" merged="0">'
-        f'<hp:run charPrIDRef="{char}">{inner}{t}</hp:run></hp:p>'
+        f'<hp:run charPrIDRef="{char}">{inner}{t}{after}</hp:run></hp:p>'
     )
 
 
@@ -132,6 +132,7 @@ MEMO = (
     '<hp:ctrl><hp:fieldBegin id="9" type="MEMO" name="" editable="1" dirty="1" fieldid="9">'
     '<hp:subList id="">' + p("메모 내용입니다.") + "</hp:subList></hp:fieldBegin></hp:ctrl>"
 )
+MEMO_END = '<hp:ctrl><hp:fieldEnd beginIDRef="9" fieldid="9"/></hp:ctrl>'
 
 SECTION_BODY = "".join([
     p("■ 경영서", char=1),
@@ -146,7 +147,7 @@ SECTION_BODY = "".join([
     p("1. 둘째 단위", char=1, para=1),
     p("1) 셋째 단위", char=1, para=1),
     p("① 넷째 단위", para=1),
-    p("본문입니다\t탭 뒤 글자", para=1, inner=MEMO),
+    p("본문입니다\t탭 뒤 글자", para=1, inner=MEMO, after=MEMO_END),
     p("  앞에 공백이 있는 본문", char=6, para=3, style=1),
     p("본문내용(맑은 고딕, 10, 들여쓰기 10)", char=4, para=1),
     p("출처 : 가짜 출처", char=5, para=2),

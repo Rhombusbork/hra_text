@@ -47,6 +47,7 @@ def _cmd_fix(args: argparse.Namespace) -> int:
 
     from .document import Document
     from .engine import run_rules
+    from .memo import add_memos
     from .report import render as render_report
 
     only = {r.strip().upper() for r in args.rules.split(",")} if args.rules else None
@@ -55,11 +56,12 @@ def _cmd_fix(args: argparse.Namespace) -> int:
         for src in _collect(args.inputs, ".hwp") + _collect(args.inputs, ".hwpx"):
             doc = Document.open(src, work_dir=Path(work))
             changes = run_rules(doc, only)
+            memos = 0 if args.no_memo else add_memos(doc, changes, author=args.author)
             dst = doc.save(out_dir / f"{src.stem}_피드백.hwpx")
             report = out_dir / f"{src.stem}_변경내역.txt"
-            report.write_text(render_report(changes, title=src.name) + "\n", encoding="utf-8")
+            report.write_text(render_report(changes, title=src.name, memos=memos) + "\n", encoding="utf-8")
             n_paras = len({id(c.para_el) for c in changes})
-            print(f"OK   {src.name} -> {dst.name}  (변경 {len(changes)}건, 문단 {n_paras}개)")
+            print(f"OK   {src.name} -> {dst.name}  (변경 {len(changes)}건, 문단 {n_paras}개, 메모 {memos}개)")
     return 0
 
 
@@ -103,6 +105,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("inputs", nargs="+", help="hwp/hwpx 파일 또는 폴더")
     p.add_argument("-o", "--output", default="output", help="출력 폴더 (기본: output)")
     p.add_argument("--rules", help="적용할 규칙만 (예: R01,R03). 기본: 구현된 전부")
+    p.add_argument("--no-memo", action="store_true", help="메모를 달지 않음")
+    p.add_argument("--author", default="neoju", help="메모 작성자 이름 (기본: neoju)")
     p.set_defaults(func=_cmd_fix)
 
     p = sub.add_parser("compare", help="우리 결과와 사람이 고친 수정본의 서식 비교")

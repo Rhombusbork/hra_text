@@ -26,8 +26,10 @@ def _fmt(v) -> str:
     return str(v)
 
 
-def render(changes: list[Change], *, title: str = "") -> str:
+def render(changes: list[Change], *, title: str = "", memos: int | None = None) -> str:
     lines = [f"# 변경 내역 {title}".rstrip(), ""]
+    if memos is not None:
+        lines.append(f"단 메모 수: {memos}")
     counts = Counter(c.rule_id for c in changes)
     lines.append("규칙별 변경 수: " + (", ".join(
         f"{rid}({REGISTRY[rid].NAME}) {n}" for rid, n in sorted(counts.items())) or "없음"))

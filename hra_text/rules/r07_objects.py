@@ -77,7 +77,7 @@ class R07Objects(Rule):
                 pos.set("treatAsChar", "1")
                 doc.touched.add(p.el)
                 changes.append(self.change(
-                    p, "treatAsChar", False, True, kind=_kind(o),
+                    p, "treatAsChar", False, True, kind=_kind(o), obj=o,
                     note="원래 위치가 쪽 기준이라 배치 확인 필요" if uncertain else "",
                 ))
         if moved_any:
