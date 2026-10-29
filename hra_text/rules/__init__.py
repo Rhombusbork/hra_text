@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-REGISTRY: dict[str, object] = {}
+import importlib
+import pkgutil
+
+REGISTRY: dict[str, type] = {}
 
 
 def register(rule_cls):
@@ -11,3 +14,12 @@ def register(rule_cls):
         raise ValueError(f"중복 규칙 ID: {rule_id}")
     REGISTRY[rule_id] = rule_cls
     return rule_cls
+
+
+def _load_all() -> None:
+    for mod in pkgutil.iter_modules(__path__):
+        if mod.name.startswith("r") and mod.name[1:3].isdigit():
+            importlib.import_module(f"{__name__}.{mod.name}")
+
+
+_load_all()

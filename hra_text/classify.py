@@ -44,6 +44,13 @@ ROLES = (
     INTRO_TITLE, INTRO_IMAGE, INTRO_BODY, READING_TITLE, READING_BYLINE, SKIP,
 )
 
+# 표 종류
+TABLE_TOC = "TOC"
+TABLE_COVER = "COVER"
+TABLE_INTRO = "INTRO"
+TABLE_H1_BOX = "H1_BOX"
+TABLE_NORMAL = "NORMAL"
+
 GUIDE_COLOR = "#FF0000"
 RE_H1 = re.compile(r"^\s*[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ]\s*\.")
 RE_H2 = re.compile(r"^\s*\d{1,2}\.(?!\d)\s*\S")
@@ -246,3 +253,17 @@ def classify(doc: "Document") -> None:
             p.role = REFLECTION_NAME if RE_NAME.match(stripped) else REFLECTION
         else:
             p.role = BODY
+
+    # 표 종류 (R04 등에서 개체 문단 정렬을 정할 때 사용): id(hp:tbl) → 종류
+    kinds: dict[int, str] = {}
+    for p in paras:
+        if p.role == H1 and p.cell is not None:
+            kinds[id(p.cell.tbl)] = TABLE_H1_BOX
+    kinds.update({t: TABLE_TOC for t in toc_tables})
+    kinds.update({t: TABLE_COVER for t in cover_tables})
+    kinds.update({t: TABLE_INTRO for t in intro_tables})
+    doc.table_kinds = kinds
+
+
+def table_kind(doc: "Document", tbl) -> str:
+    return getattr(doc, "table_kinds", {}).get(id(tbl), TABLE_NORMAL)

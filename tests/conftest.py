@@ -105,7 +105,7 @@ def p(text="", char=0, para=0, style=0, inner=""):
     )
 
 
-def table(rows, *, treat_as_char=True, fill="1", col_span_first=1):
+def table(rows, *, treat_as_char=True, fill="1", col_span_first=1, vert_offset=0):
     """rows: [[cell_paragraphs_xml, ...], ...]"""
     n_rows, n_cols = len(rows), max(len(r) for r in rows)
     trs = []
@@ -122,7 +122,8 @@ def table(rows, *, treat_as_char=True, fill="1", col_span_first=1):
         trs.append("<hp:tr>" + "".join(tcs) + "</hp:tr>")
     return (
         f'<hp:tbl id="1" rowCnt="{n_rows}" colCnt="{n_cols}" borderFillIDRef="1">'
-        f'<hp:sz width="1000" height="1000"/><hp:pos treatAsChar="{int(treat_as_char)}"/>'
+        f'<hp:sz width="1000" height="1000"/><hp:pos treatAsChar="{int(treat_as_char)}" '
+        f'vertRelTo="PARA" horzRelTo="PARA" vertOffset="{vert_offset}" horzOffset="0"/>'
         + "".join(trs) + "</hp:tbl>"
     )
 
@@ -139,7 +140,9 @@ SECTION_BODY = "".join([
     p(para=2, inner=table([[p("목차", para=2)], [p("Ⅰ. 첫 장", char=1, para=2)]])),
     p(para=2, inner=table([[p("소    속", para=2), p("HRA 20기 0조", para=2)],
                           [p("발 표 자", para=2), p("홍길동", para=2)]])),
-    p(inner=table([[p("Ⅰ. 첫 장", char=3)]], fill="2")),
+    # 떠 있는 표가 1단위 타이틀 칸 앞에 앵커됨 (경영서 샘플과 같은 구조)
+    p(inner=table([[p("떠 있는 표", para=3)]], treat_as_char=False, vert_offset=3000)
+      + table([[p("Ⅰ. 첫 장", char=3)]], fill="2")),
     p("1. 둘째 단위", char=1, para=1),
     p("1) 셋째 단위", char=1, para=1),
     p("① 넷째 단위", para=1),

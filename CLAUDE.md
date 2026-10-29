@@ -69,8 +69,8 @@ HRA 20기 보고서(경영서·기업실무·고전) hwp/hwpx 파일을 양식�
 2. **속성 단위 패스**: 바탕글 전체 검사 → 글꼴 전체 → 크기 전체 … 규칙과 1:1이라 관리가 쉽다. 하지만 "크기가 몇이어야 하는가"는 문단이 제목인지 본문인지에 따라 달라서, **각 패스가 역할 판별을 매번 따로** 하게 된다.
 3. **채택: 1단계 역할 분류 + 2단계 규칙별 패스**
    - 1단계: 문서를 한 번 훑어 모든 문단에 역할(H1/H2/BODY/SOURCE…)을 붙인다. 이것이 핵심이고, `--dump`로 사람이 확인할 수 있게 한다.
-   - 2단계: FORMAT_RULES의 규칙마다 패스 하나 (R15 안내문 삭제 → R01 스타일 → R02 글꼴 → …). 각 패스는 역할표를 보고 기대값과 비교해 `Change(rule_id, 위치, 이전값, 새값)`를 낸다.
-   - 3단계: 모든 Change를 모아 XML에 적용하고, 규칙별로 묶어 메모를 생성한다.
+   - 2단계: FORMAT_RULES의 규칙마다 패스 하나 (R15 안내문 삭제 → R01 스타일 → R02 글꼴 → …). 각 패스는 역할표를 보고 기대값과 다르면 **즉시 XML을 고치고** `Change(rule_id, key, old, new, 문단)` 기록을 남긴다 (앞 패스의 결과를 뒤 패스가 보도록).
+   - 3단계: Change 기록을 문단별로 묶어 메모와 변경 내역 보고서를 만든다.
    - 장점: 규칙 ↔ 코드 ↔ 메모가 1:1, 규칙 하나만 켜고 끄며 테스트 가능, 순서 의존(안내문 삭제 후 빈 줄 정리 등)을 명시적으로 관리.
    - "넣어야 할 것"뿐 아니라 "**들어가면 안 되는 것**"도 같은 방식으로 처리한다: 각 패스는 역할별 기대값과 **다른 값은 무엇이든** 기대값으로 덮어쓴다(예: 아래 간격 4pt → 0, 본문 볼드 → 해제). 규칙에 없는 숨은 서식(기울임, 밑줄, 셀 음영 등)은 R13이 기본값으로 되돌린다.
 
@@ -89,28 +89,33 @@ parse → classify(역할) → R15 안내문 삭제 → R16 쪽 번호 제거 �
 
 ```
 hra_text/
-  cli.py              # hra-fix input/ -o output/ [--dump] [--rules R01,R03] [--no-memo]
+  cli.py              # hra-fix convert | dump | fix | compare
   convert.py          # hwp → hwpx (hwp2hwpx Java 라이브러리 호출)
+  document.py         # Document: 패키지 + header + 문단 목록(+역할), touched(수정 문단), save
+  engine.py           # run_rules: rules.base.ORDER 순서로 등록된 규칙 실행
+  compare.py          # 우리 결과 vs 사람이 고친 수정본: 글자로 문단 짝짓기 → 서식 비교
   hwpx/
     package.py        # zip 열기/저장 (mimetype 무압축·첫 항목 유지, 나머지 그대로 보존)
     header.py         # charPr/paraPr/style/font 레지스트리: "이 속성 조합의 ID 찾기/없으면 생성"
     section.py        # 문단/런/표/그림 순회, 텍스트 범위 위치(path) 표현
-    memo.py           # fieldBegin(MEMO)/fieldEnd 삽입, ID·번호 부여
-  model.py            # Paragraph(역할, 텍스트, 속성), Change
+    edit.py           # 글자/문단 모양 바꾸기(derive → IDRef 교체), 레이아웃 캐시 삭제
+    memo.py           # (6단계) fieldBegin(MEMO)/fieldEnd 삽입, ID·번호 부여
+  model.py            # Change (규칙이 남기는 변경 기록)
   classify.py         # 역할 분류 (FORMAT_RULES §1)
   rules/
-    base.py           # Rule(RULE_ID, apply(doc) -> list[Change]), 레지스트리
+    __init__.py       # REGISTRY, register (r??_*.py 자동 로드)
+    base.py           # Rule(RULE_ID, NAME, apply(doc) -> list[Change]), ORDER(패스 순서)
     r01_style.py … r16_page_number.py   # R12는 보류(FORMAT_RULES §6)
     spacing_dict.tsv  # R11-b 교정 사전
     memo_templates.py # FORMAT_RULES §2 메모 문구 (동기화 테스트 대상)
-  report.py           # 변경 내역 텍스트/CSV 보고서
+  dump.py             # 문단별 역할·서식 표
+  report.py           # 변경 내역 텍스트 보고서
 tests/
-  fixtures/           # 가명화 합성 hwpx
-  test_roundtrip.py   # 열고 저장만 해도 내용 동일
-  test_classify.py
-  test_rules_*.py
+  conftest.py         # 합성 hwpx fixture (개인정보 없음) 생성
+  test_package.py     # 열고 저장만 해도 내용 동일
+  test_header.py / test_classify.py / test_convert.py
+  test_rules.py       # 규칙 동작 + 로컬 샘플 회귀(우리 결과 vs 사용자 수정본, 알려진 수정 누락 목록 외 차이 0)
   test_rules_sync.py  # FORMAT_RULES ↔ 코드 동기화 검사
-  test_regression.py  # 로컬 샘플(커밋 안 됨)이 있으면: 우리 결과 vs 사용자 수정본 속성 diff
 ```
 
 ### 핵심 구현 포인트
@@ -137,7 +142,7 @@ tests/
 | 2 | hwpx 입출력: 열고 그대로 저장 → 한글에서 열림 | ✅ test_package (실제 샘플 포함) |
 | 3 | header 레지스트리 + `hra-fix dump` (문단별 역할/스타일/크기/정렬 표) | ✅ |
 | 4 | 역할 분류기 (FORMAT_RULES §1) | 자동 테스트 ✅ / 샘플 역할표 사용자 확인 대기 |
-| 5 | R01~R08 서식 규칙 | 기업실무 결과 ≈ 사용자 수정본 (속성 diff 리포트) |
+| 5 | R01~R08 서식 규칙 + `fix`/`compare` | ✅ 2026-10-29. 기업실무: 짝지은 512문단 중 차이는 전부 수정본 쪽 누락(표 안 왼쪽 정렬·MS바탕글·8.5pt, 출처 10pt 등). 재실행 시 변경 0건 |
 | 6 | 메모 삽입 + 묶기 | 경영서 결과에 피드백본과 같은 문체 메모 |
 | 7 | R15 안내문 삭제, R16 쪽 번호, R09 빈 줄, R10 공백, R13 기본값 복원, R14 표지/목차 | 템플릿을 넣으면 붉은 글씨가 모두 사라짐 |
 | 8 | R11 띄어쓰기(규칙·사전) | 기업실무 띄어쓰기 수정 재현 |
@@ -150,4 +155,6 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/pytest
 .venv/bin/hra-fix convert <hwp 파일|폴더> -o output   # hwp → hwpx (원본 유지)
 .venv/bin/hra-fix dump <hwp/hwpx 파일|폴더> [-o output]  # 문단별 역할·서식 표
+.venv/bin/hra-fix fix <hwp/hwpx 파일|폴더> [-o output] [--rules R01,R03]  # → <이름>_피드백.hwpx + <이름>_변경내역.txt
+.venv/bin/hra-fix compare <우리 결과.hwpx> <사람 수정본>      # 서식 차이 요약
 ```

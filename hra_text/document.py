@@ -17,6 +17,8 @@ class Document:
         self.source = source  # 사용자가 준 원본 경로 (hwp 일 수 있음)
         self.header = Header(pkg.header)
         self.paras: list[Para] = []
+        self.touched: set = set()  # 수정한 문단 요소 (저장 전 레이아웃 캐시 삭제)
+        self.table_kinds: dict[int, str] = {}
         self.reload()
 
     @classmethod
@@ -40,4 +42,7 @@ class Document:
         dst = Path(dst).resolve()
         if dst == self.source.resolve():
             raise ValueError("원본을 덮어쓸 수 없습니다.")
+        from .hwpx.edit import drop_layout_cache
+
+        drop_layout_cache(self)
         return self.pkg.save(dst)
