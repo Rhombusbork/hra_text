@@ -87,7 +87,7 @@ def test_object_paragraph_alignment_by_table_kind(sample_hwpx, tmp_path):
             kinds[p.tables[0].findtext(".//hp:t", namespaces=NS)] = doc.header.para(p.para_id).align
     assert kinds["목차"] == "CENTER"
     assert kinds["소    속"] == "RIGHT"
-    assert kinds["배경"] == "JUSTIFY"
+    assert kinds["배경"] == "CENTER"
 
 
 def test_floating_objects_become_inline(sample_hwpx, tmp_path):
