@@ -49,6 +49,10 @@ MEMO_TEMPLATES: dict[str, dict[str, str]] = {
         "leading_space": "문단 앞에 띄어쓰기로 들여쓰기가 되어 있어 지웠습니다. "
                          "들여쓰기는 Alt T(문단 모양)로 설정해 주시면 감사드리겠습니다.",
     },
+    "R11": {
+        "spacing": "'{old}'를 '{new}'(으)로 띄어 썼습니다.",
+        "spacing_check": "'{text}' 부분에 띄어쓰기가 빠진 것 같습니다. 확인 부탁드립니다.",
+    },
     "R13": {
         "default": "{item}이(가) 설정되어 있어 기본값으로 되돌렸습니다.",
     },

@@ -12,7 +12,7 @@ KEY_NAMES = {
     "intent": "들여쓰기", "left": "왼쪽 여백", "right": "오른쪽 여백", "prev": "문단 위 간격",
     "next": "문단 아래 간격", "line": "줄 간격", "treatAsChar": "글자처럼 취급",
     "guide": "양식 안내 문구", "page_num": "쪽 번호", "leading_space": "문단 앞 공백",
-    "default": "숨은 서식", "blank_lines": "빈 줄", "toc": "목차", "toc_count": "목차 항목 수",
+    "default": "숨은 서식", "spacing": "띄어쓰기", "spacing_check": "띄어쓰기 확인", "blank_lines": "빈 줄", "toc": "목차", "toc_count": "목차 항목 수",
 }
 
 

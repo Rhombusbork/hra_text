@@ -96,3 +96,24 @@ def test_r14_toc_count_mismatch_is_memo_only(sample_hwpx, tmp_path):
 def test_cleanup_idempotent(sample_hwpx, tmp_path):
     doc, _ = _run(sample_hwpx, tmp_path)
     assert [c for c in run_rules(doc) if not c.extra.get("check")] == []
+
+
+def test_r11_spacing_dict_pattern_and_check(tmp_path):
+    from conftest import SECTION, build_hwpx
+
+    section = SECTION.replace("느낀 점 본문입니다.", "경영학과4학년 직종별유연근무제제안 가나다라마바사아자차카타파하거너")
+    doc, changes = _run(build_hwpx(tmp_path / "s.hwpx", section=section), tmp_path)
+    text = next(p.text for p in doc.paras if "경영학과" in p.text)
+    assert "경영학과 4학년 직종별 유연근무제 제안" in text
+    r11 = [(c.key, c.old) for c in changes if c.rule_id == "R11"]
+    assert ("spacing", "경영학과4학년") in r11 and ("spacing", "직종별유연근무제제안") in r11
+    assert ("spacing_check", "가나다라마바사아자차카타파하거너") in r11, "사전에 없는 긴 덩어리는 확인 메모만"
+    assert "가나다라마바사아자차카타파하거너" in text, "확인만 하고 고치지 않는다"
+
+
+def test_r11_dict_file_is_well_formed():
+    from hra_text.rules.r11_spacing import load_dict
+
+    pairs = load_dict()
+    assert pairs and all(w.replace(" ", "") == r.replace(" ", "") for w, r in pairs), \
+        "사전은 띄어쓰기만 바꿔야 한다 (글자가 달라지면 안 됨)"

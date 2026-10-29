@@ -16,6 +16,9 @@ version = { attr = "hra_text.__version__" }
 [tool.setuptools.packages.find]
 include = ["hra_text*"]
 
+[tool.setuptools.package-data]
+"hra_text.rules" = ["*.tsv"]
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"

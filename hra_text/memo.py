@@ -27,7 +27,7 @@ ALIGN_NAMES = {"JUSTIFY": "양쪽", "LEFT": "왼쪽", "RIGHT": "오른쪽", "CEN
                "DISTRIBUTE": "배분", "DISTRIBUTE_SPACE": "나눔"}
 GAP_POS = {"prev": "위", "next": "아래"}
 PT_KEYS = {"size", "intent", "left", "right", "prev", "next"}
-KEY_ORDER = ("guide", "page_num", "leading_space", "treatAsChar", "style", "font", "size", "bold",
+KEY_ORDER = ("guide", "page_num", "leading_space", "spacing", "spacing_check", "treatAsChar", "style", "font", "size", "bold",
              "default", "align", "intent", "left", "right", "prev", "next", "line", "blank_lines",
              "toc", "toc_count")
 
@@ -192,6 +192,10 @@ class Writer:
             return t["R16"]["page_num"]
         if c.rule_id == "R14":
             return t["R14"][c.key].format(toc=c.old, h1=c.new)
+        if c.rule_id == "R11":
+            if c.key == "spacing_check":
+                return t["R11"]["spacing_check"].format(text=c.old)
+            return t["R11"]["spacing"].format(old=c.old, new=c.new)
         if c.rule_id == "R13":
             return t["R13"]["default"].format(item=c.extra.get("item", c.old))
         if c.rule_id == "R09":
