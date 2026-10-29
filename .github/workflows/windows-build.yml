@@ -8,9 +8,15 @@ on:
     branches: [hwpx-xml]
     paths: ["hra_text/**", "packaging/**", "scripts/**", "tools/**", "tests/**", "pyproject.toml", ".gitattributes", ".github/workflows/windows-build.yml"]
 
+# 새로 올리면 진행 중이던 빌드는 취소
+concurrency:
+  group: windows-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 40
     defaults:
       run:
         shell: bash
@@ -28,7 +34,7 @@ jobs:
       - name: 테스트
         run: |
           python -m pip install -q -e . pytest
-          python -m pytest -q
+          HRA_NO_DIALOG=1 python -m pytest -q -p no:cacheprovider
       - name: 작은 Java 만들기 (jlink)
         run: jlink --add-modules java.base,java.xml --strip-debug --no-man-pages --no-header-files --compress=zip-6 --output runtime
       - name: exe 만들기 (PyInstaller)
