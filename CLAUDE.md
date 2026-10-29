@@ -134,9 +134,9 @@ tests/
 |---|---|---|
 | 0 | 환경: venv, `requirements.txt`, hwp2hwpx 빌드(`scripts/build_hwp2hwpx.sh`, Maven 없이 javac) | ✅ 2026-10-29 |
 | 1 | hwp→hwpx 변환 검증: 샘플 5종 변환, pyhwp로 읽은 원본과 문단 단위 비교(글자·스타일·크기·볼드·정렬·여백 모두 일치) → 한글에서 열림 확인(사용자) | 자동 비교 ✅ / 사용자 확인 대기 |
-| 2 | hwpx 입출력: 열고 그대로 저장 → 한글에서 열림 | test_roundtrip |
-| 3 | header 레지스트리 + `--dump` (문단별 역할/스타일/크기/정렬 표) | 샘플 dump가 위 분석과 일치 |
-| 4 | 역할 분류기 | 샘플 3종 역할표를 사용자 확인 |
+| 2 | hwpx 입출력: 열고 그대로 저장 → 한글에서 열림 | ✅ test_package (실제 샘플 포함) |
+| 3 | header 레지스트리 + `hra-fix dump` (문단별 역할/스타일/크기/정렬 표) | ✅ |
+| 4 | 역할 분류기 (FORMAT_RULES §1) | 자동 테스트 ✅ / 샘플 역할표 사용자 확인 대기 |
 | 5 | R01~R08 서식 규칙 | 기업실무 결과 ≈ 사용자 수정본 (속성 diff 리포트) |
 | 6 | 메모 삽입 + 묶기 | 경영서 결과에 피드백본과 같은 문체 메모 |
 | 7 | R15 안내문 삭제, R16 쪽 번호, R09 빈 줄, R10 공백, R13 기본값 복원, R14 표지/목차 | 템플릿을 넣으면 붉은 글씨가 모두 사라짐 |
@@ -149,4 +149,5 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 ./scripts/build_hwp2hwpx.sh            # vendor/hwp2hwpx-cli.jar 생성 (Java 필요)
 .venv/bin/pytest
 .venv/bin/hra-fix convert <hwp 파일|폴더> -o output   # hwp → hwpx (원본 유지)
+.venv/bin/hra-fix dump <hwp/hwpx 파일|폴더> [-o output]  # 문단별 역할·서식 표
 ```

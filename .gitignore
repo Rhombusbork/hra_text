@@ -7,5 +7,8 @@ output/
 .venv/
 __pycache__/
 *.pyc
+*.egg-info/
 .pytest_cache/
-vendor/*.jar
+
+# scripts/build_hwp2hwpx.sh 가 받아서 만드는 것들
+vendor/
