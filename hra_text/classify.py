@@ -140,6 +140,8 @@ def classify(doc: "Document") -> None:
         if p.container in ("body", "cell") and is_h1(p):
             h1_text_by_top.setdefault(_top_index(p), p.text)
     first_h1_top = min(h1_text_by_top, default=10**12)
+    # 1단위 타이틀이 하나도 없으면 에세이(= 고전 '함께읽기용' 형식): 첫 ■ 부터 함께읽기 부분
+    essay = not h1_text_by_top
 
     # 책 소개/저자 소개 표, 그리고 그림이 든 셀
     # 그림 칸: 그림이 있거나 "그림"(템플릿 자리표시) 문단이 있는 셀 전체
@@ -213,7 +215,7 @@ def classify(doc: "Document") -> None:
         if stripped.startswith("■"):
             seen_category += 1
             p.role = CATEGORY
-            if seen_category > 1:
+            if seen_category > 1 or essay:
                 reading_part, reading_title_done = True, False
             continue
         if p.is_empty:
@@ -226,11 +228,6 @@ def classify(doc: "Document") -> None:
             p.role = H1
             continue
 
-        if top < first_h1_top:  # 표지 영역
-            sizes = [doc.header.char(r.char_id).size_pt for r in visible_runs]
-            p.role = COVER_TITLE if sizes and max(sizes) >= COVER_TITLE_MIN_PT else BODY
-            continue
-
         if reading_part:
             if not reading_title_done:
                 p.role, reading_title_done = READING_TITLE, True
@@ -238,6 +235,11 @@ def classify(doc: "Document") -> None:
             if RE_BYLINE.search(text) and len(stripped) <= 40:
                 p.role = READING_BYLINE
                 continue
+
+        if top < first_h1_top and not reading_part:  # 표지 영역
+            sizes = [doc.header.char(r.char_id).size_pt for r in visible_runs]
+            p.role = COVER_TITLE if sizes and max(sizes) >= COVER_TITLE_MIN_PT else BODY
+            continue
 
         if RE_SOURCE.match(text):
             p.role = SOURCE

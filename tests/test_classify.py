@@ -62,3 +62,19 @@ def test_classic_template_roles():
     assert c["GUIDE"] == 3
     assert c["CATEGORY"] == 2
     assert (c["READING_TITLE"], c["READING_BYLINE"]) == (1, 1)
+
+
+ESSAYS = local_samples("*에세이*.hwp")
+
+
+@pytest.mark.skipif(not ESSAYS, reason="로컬 샘플 없음")
+@pytest.mark.parametrize("src", ESSAYS, ids=lambda p: p.stem[:12])
+def test_essay_is_reading_format(src, tmp_path):
+    """에세이 = 고전 함께읽기용 형식: 제목·작성자 줄을 본문으로 착각하지 않는다."""
+    from hra_text.engine import run_rules
+
+    doc = Document.open(src, work_dir=tmp_path)
+    c = Counter(p.role for p in doc.paras)
+    assert (c["READING_TITLE"], c["READING_BYLINE"]) == (1, 1)
+    changes = run_rules(doc)
+    assert all(ch.rule_id == "R10" for ch in changes), "에세이는 (문단 앞 공백 외) 고칠 게 없어야 한다"
