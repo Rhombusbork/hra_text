@@ -1,4 +1,5 @@
-"""R16. 쪽 번호 제거 (쪽 번호 매기기 hp:pageNum, 머리말/꼬리말의 쪽 번호 자동 번호)."""
+"""R16. 쪽 번호 제거 (쪽 번호 매기기 hp:pageNum, 머리말/꼬리말의 쪽 번호 자동 번호).
+pos="NONE"(쪽 번호 없음 설정)은 보이지 않으므로 그대로 둔다."""
 
 from ..hwpx.ns import NS, hp
 from . import register
@@ -8,7 +9,8 @@ from .base import Rule
 def _page_number_ctrls(section):
     for ctrl in section.iter(hp("ctrl")):
         for child in ctrl:
-            if child.tag == hp("pageNum") or (child.tag == hp("autoNum") and child.get("numType") == "PAGE"):
+            if (child.tag == hp("pageNum") and child.get("pos", "NONE") != "NONE") or (
+                    child.tag == hp("autoNum") and child.get("numType") == "PAGE"):
                 yield ctrl
                 break
 

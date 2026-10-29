@@ -138,7 +138,8 @@ MEMO = (
     '<hp:subList id="">' + p("메모 내용입니다.") + "</hp:subList></hp:fieldBegin></hp:ctrl>"
 )
 MEMO_END = '<hp:ctrl><hp:fieldEnd beginIDRef="9" fieldid="9"/></hp:ctrl>'
-PAGE_NUM = '<hp:ctrl><hp:pageNum pos="BOTTOM_CENTER" formatType="DIGIT" sideChar=""/></hp:ctrl>'
+PAGE_NUM = ('<hp:ctrl><hp:pageNum pos="BOTTOM_CENTER" formatType="DIGIT" sideChar=""/></hp:ctrl>'
+            '<hp:ctrl><hp:pageNum pos="NONE" formatType="DIGIT" sideChar=""/></hp:ctrl>')
 
 
 def runs_p(runs, para=0, style=0):

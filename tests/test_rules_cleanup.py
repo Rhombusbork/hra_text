@@ -28,9 +28,19 @@ def test_r15_removes_red_guide_text(sample_hwpx, tmp_path):
     assert {c.old for c in changes if c.rule_id == "R15"} == {"발표자용", "본문내용(맑은 고딕, 10, 들여쓰기 10)"}
 
 
+def test_r15b_removes_template_notes(tmp_path):
+    from conftest import SECTION, build_hwpx
+
+    path = build_hwpx(tmp_path / "s.hwpx", section=SECTION.replace("가짜 제목", "가짜 제목(맑은 고딕, 32, 진하게)"))
+    doc, changes = _run(path, tmp_path)
+    assert "가짜 제목" in [p.text.strip() for p in doc.paras]
+    assert "(맑은 고딕, 32, 진하게)" in {c.old for c in changes if c.rule_id == "R15"}
+
+
 def test_r16_removes_page_number(sample_hwpx, tmp_path):
     doc, changes = _run(sample_hwpx, tmp_path)
-    assert not list(doc.pkg.sections()[0].iter(hp("pageNum")))
+    left = [e.get("pos") for e in doc.pkg.sections()[0].iter(hp("pageNum"))]
+    assert left == ["NONE"], "보이는 쪽 번호만 지우고 '쪽 번호 없음' 설정은 둔다"
     assert [c.key for c in changes if c.rule_id == "R16"] == ["page_num"]
 
 
