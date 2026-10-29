@@ -44,6 +44,7 @@ MEMO_TEMPLATES: dict[str, dict[str, str]] = {
 COMMON: dict[str, str] = {
     "short": "{item}: {old} → {new} 수정했습니다.",
     "table_head": "이 표 안의 문단 {n}개를 다음과 같이 수정했습니다.",
+    "same_below": "아래 {what} {n}개도 같은 문제가 있어 같이 수정했습니다.",
     "empty_lines": "위쪽 빈 줄 {n}개의 서식도 같은 기준으로 맞췄습니다.",
     "help": "혹시 도움이 필요하신 부분이 있으시다면 말씀해주세요.",
 }

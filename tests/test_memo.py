@@ -103,3 +103,20 @@ def test_memo_uses_memo_style_when_present(sample_hwpx, tmp_path):
               fb.find("hp:parameters/hp:stringParam[@name='Author']", NS).text == "neoju")
     sid = fb.find("hp:subList/hp:p", NS).get("styleIDRef")
     assert doc.header.style_name(sid) in ("메모", "바탕글")
+
+
+def test_consecutive_same_fixes_share_one_memo():
+    from hra_text.memo import MemoPlan, Writer, group_runs
+    from hra_text.model import Change
+
+    el = etree.Element("p")
+
+    def plan(order, rule="R01", key="style", old="본문", kind="para"):
+        c = Change(rule_id=rule, key=key, old=old, new="바탕글", para_el=el, path="", role="BODY", text="")
+        return MemoPlan(target=el, order=order, kind=kind, changes=[c])
+
+    plans = [plan(0), plan(1), plan(2), plan(3, old="MS바탕글"), plan(4), plan(5, kind="table")]
+    runs = group_runs(plans)
+    assert [len(r) for r in runs] == [3, 1, 1, 1], "같은 수정이 이어질 때만 묶인다"
+    lines = Writer().lines(runs[0][0], same_below=2)
+    assert COMMON["same_below"].format(what="문단", n=2) in lines

@@ -1,6 +1,6 @@
-"""R04. 정렬 (FORMAT_RULES R04 표). SOURCE 는 R08 이 처리."""
+"""R04. 정렬 (FORMAT_RULES R04 표). SOURCE 는 R08 이 처리.
+개체 문단(표·그림을 담은 문단 = 표 위치)은 받은 대로 둔다."""
 
-from ..classify import TABLE_COVER, TABLE_TOC, table_kind
 from ..hwpx.edit import change_para, para_align
 from . import register
 from .base import Rule
@@ -8,9 +8,8 @@ from .base import Rule
 CENTER_ROLES = {"COVER_TITLE", "TOC_TITLE", "TOC_ITEM", "COVER_TABLE", "INTRO_TITLE",
                 "INTRO_IMAGE", "READING_TITLE"}
 RIGHT_ROLES = {"AUTHOR_TAG", "READING_BYLINE"}
-HANDLED_ELSEWHERE = {"SOURCE"}  # R08
-# 개체 문단은 담긴 표의 종류로 정한다 (목차 표는 가운데, 표지 정보 표는 오른쪽, 그 외는 양쪽 = 왼쪽에 붙음)
-OBJECT_ALIGN = {TABLE_TOC: "CENTER", TABLE_COVER: "RIGHT"}
+# SOURCE 는 R08, OBJECT(표 위치)는 받은 대로 [U] 2026-10-29
+NOT_HANDLED = {"SOURCE", "OBJECT"}
 
 
 def expected_align(doc, para) -> str:
@@ -18,11 +17,6 @@ def expected_align(doc, para) -> str:
         return "CENTER"
     if para.role in RIGHT_ROLES:
         return "RIGHT"
-    if para.role == "OBJECT":
-        for tbl in para.tables:
-            kind = table_kind(doc, tbl)
-            if kind in OBJECT_ALIGN:
-                return OBJECT_ALIGN[kind]
     return "JUSTIFY"
 
 
@@ -34,7 +28,7 @@ class R04Align(Rule):
     def apply(self, doc):
         changes = []
         for p in self.formatted(doc):
-            if p.role in HANDLED_ELSEWHERE:
+            if p.role in NOT_HANDLED:
                 continue
             want = expected_align(doc, p)
             have = doc.header.para(p.para_id).align

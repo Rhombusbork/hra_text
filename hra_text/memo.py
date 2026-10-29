@@ -3,6 +3,7 @@
 - 본문 문단: 수정된 문단 1개당 메모 1개 (여러 규칙은 한 메모에 줄을 나눠 적는다)
 - 표: 표 1개당 메모 1개 (표 안 첫 글자 문단에 단다)
 - 빈 줄·그림만 있는 문단: 같은 영역의 다음 글자 문단 메모에 합친다
+- 바로 앞 메모와 고친 내용이 같으면 새 메모를 달지 않고 앞 메모에 "아래 … n개도 같은 문제" 한 줄
 - 같은 (규칙, 항목)의 첫 메모는 템플릿 전체 문장, 그 뒤로는 짧은 형태
 - 문서의 첫 메모 끝에 도움 문구 1회
 """
@@ -34,6 +35,7 @@ KEY_ORDER = ("treatAsChar", "style", "font", "size", "bold", "align", "intent", 
 class MemoPlan:
     target: etree._Element
     order: int
+    kind: str = "para"  # para | table
     changes: list[Change] = field(default_factory=list)
     table_paras: set = field(default_factory=set)  # 표 메모: 수정된 셀 문단
     empty_paras: set = field(default_factory=set)  # 합쳐진 빈 줄
@@ -77,10 +79,10 @@ def plan(doc: Document, changes: list[Change]) -> list[MemoPlan]:
     by_el = {p.el: p for p in doc.paras}
     plans: dict[int, MemoPlan] = {}
 
-    def get(target: Para) -> MemoPlan:
+    def get(target: Para, kind: str = "para") -> MemoPlan:
         key = id(target.el)
         if key not in plans:
-            plans[key] = MemoPlan(target=target.el, order=target.index)
+            plans[key] = MemoPlan(target=target.el, order=target.index, kind=kind)
         return plans[key]
 
     obj_para = {id(o): q for q in doc.paras for o in q.tables + q.pictures}
@@ -94,14 +96,14 @@ def plan(doc: Document, changes: list[Change]) -> list[MemoPlan]:
         if obj is not None and obj.tag.endswith("}tbl"):
             target = _first_text_para_in_table(doc, obj) or _next_text_para(doc, p)
             if target is not None:
-                get(target).changes.append(c)
+                get(target, "table").changes.append(c)
             continue
         if p.top_cell is not None or (p.role == "OBJECT" and p.tables):
             tbl = p.top_cell.tbl if p.top_cell is not None else p.tables[0]
             target = _first_text_para_in_table(doc, tbl) or _next_text_para(doc, p)
             if target is None:
                 continue
-            mp = get(target)
+            mp = get(target, "table")
             mp.changes.append(c)
             if p.top_cell is not None:
                 mp.table_paras.add(p.el)
@@ -136,7 +138,7 @@ class Writer:
         return COMMON["short"].format(item=KEY_NAMES.get(c.key, c.key),
                                       old=_value(c.key, c.old), new=_value(c.key, c.new))
 
-    def lines(self, mp: MemoPlan) -> list[str]:
+    def lines(self, mp: MemoPlan, same_below: int = 0) -> list[str]:
         out: list[str] = []
         if mp.table_paras:
             out.append(COMMON["table_head"].format(n=len(mp.table_paras)))
@@ -160,6 +162,9 @@ class Writer:
                 out.append(MEMO_TEMPLATES["R08"]["source"].format(details=details))
             else:
                 out += [self._short(c) for c in r08]
+        if same_below:
+            out.append(COMMON["same_below"].format(what="표" if mp.kind == "table" else "문단",
+                                                   n=same_below))
         if mp.empty_paras:
             out.append(COMMON["empty_lines"].format(n=len(mp.empty_paras)))
         if out and self.first_memo:
@@ -191,6 +196,26 @@ class Writer:
         return self._short(c)
 
 
+def signature(mp: MemoPlan):
+    """고친 내용의 정체: 같으면 앞 메모에 합친다. 고친 내용 없이 빈 줄만 있으면 합치지 않는다."""
+    if not mp.changes:
+        return None
+    return mp.kind, frozenset((c.rule_id, c.key, repr(c.old), repr(c.new), c.extra.get("kind"), c.note)
+                              for c in mp.changes)
+
+
+def group_runs(plans: list[MemoPlan]) -> list[list[MemoPlan]]:
+    """문서 순서로 이어지는 같은 고친 내용의 메모 계획을 한 묶음으로."""
+    runs: list[list[MemoPlan]] = []
+    for mp in plans:
+        sig = signature(mp)
+        if runs and sig is not None and signature(runs[-1][0]) == sig:
+            runs[-1].append(mp)
+        else:
+            runs.append([mp])
+    return runs
+
+
 def add_memos(doc: Document, changes: list[Change], *, author: str = "neoju",
               when: datetime | None = None) -> int:
     """변경 기록으로 메모를 만들어 넣고, 넣은 메모 수를 돌려준다."""
@@ -199,8 +224,9 @@ def add_memos(doc: Document, changes: list[Change], *, author: str = "neoju",
     number = existing_memo_count(doc)
     when = when or datetime.now(timezone.utc)
     added = 0
-    for mp in plans:
-        lines = writer.lines(mp)
+    for run in group_runs(plans):
+        mp = run[0]
+        lines = writer.lines(mp, same_below=len(run) - 1)
         if not lines:
             continue
         number += 1

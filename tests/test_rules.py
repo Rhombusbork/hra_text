@@ -79,14 +79,15 @@ def test_reflection_name_stays_bold(sample_hwpx, tmp_path):
     assert (f["sizes"], f["bold"], f["intent"]) == ({10.0}, {True}, 10.0)
 
 
-def test_object_paragraph_alignment_by_table_kind(sample_hwpx, tmp_path):
+def test_object_paragraph_alignment_kept(sample_hwpx, tmp_path):
+    """표 위치(표 바깥 문단 정렬)는 받은 대로 둔다."""
     doc, _ = _fixed(sample_hwpx, tmp_path)
     kinds = {}
     for p in doc.paras:
         if p.role == "OBJECT":
             kinds[p.tables[0].findtext(".//hp:t", namespaces=NS)] = doc.header.para(p.para_id).align
-    assert kinds["목차"] == "CENTER"
-    assert kinds["소    속"] == "RIGHT"
+    assert kinds["목차"] == "CENTER"  # 합성 문서에서 원래 가운데
+    assert kinds["소    속"] == "CENTER"  # 원래 가운데 → 그대로
     assert kinds["배경"] == "JUSTIFY"
 
 
