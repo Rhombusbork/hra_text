@@ -27,8 +27,9 @@ ALIGN_NAMES = {"JUSTIFY": "양쪽", "LEFT": "왼쪽", "RIGHT": "오른쪽", "CEN
                "DISTRIBUTE": "배분", "DISTRIBUTE_SPACE": "나눔"}
 GAP_POS = {"prev": "위", "next": "아래"}
 PT_KEYS = {"size", "intent", "left", "right", "prev", "next"}
-KEY_ORDER = ("treatAsChar", "style", "font", "size", "bold", "align", "intent", "left", "right",
-             "prev", "next", "line")
+KEY_ORDER = ("guide", "page_num", "leading_space", "treatAsChar", "style", "font", "size", "bold",
+             "default", "align", "intent", "left", "right", "prev", "next", "line", "blank_lines",
+             "toc", "toc_count")
 
 
 @dataclass
@@ -52,6 +53,10 @@ def _value(key: str, v) -> str:
         return f"{v:g}pt"
     if key == "line":
         return f"{v}%"
+    if key == "blank_lines":
+        return f"{v}줄"
+    if key == "leading_space":
+        return f"{v}칸" if v else "없음"
     return str(v)
 
 
@@ -174,6 +179,18 @@ class Writer:
 
     def _line(self, c: Change) -> str:
         t = MEMO_TEMPLATES
+        # 매번 전체 문장 (내용이 그때그때 다름)
+        if c.rule_id == "R15":
+            return t["R15"]["guide"].format(text=c.old)
+        if c.rule_id == "R16":
+            return t["R16"]["page_num"]
+        if c.rule_id == "R14":
+            return t["R14"][c.key].format(toc=c.old, h1=c.new)
+        if c.rule_id == "R13":
+            return t["R13"]["default"].format(item=c.extra.get("item", c.old))
+        if c.rule_id == "R09":
+            variant = c.extra.get("variant", "too_many")
+            return t["R09"][variant] if self._once("R09", variant) else self._short(c)
         if c.rule_id == "R03" and c.key == "bold":
             variant = "bold_on" if c.new else "bold_off"
             return t["R03"][variant] if self._once("R03", variant) else self._short(c)

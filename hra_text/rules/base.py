@@ -40,3 +40,14 @@ class Rule:
     def text_runs(para: "Para"):
         """글자가 들어 있는 런 (공백 포함)."""
         return [r for r in para.runs if r.text]
+
+
+def text_anchor(doc: "Document", para: "Para", *, after: bool = True):
+    """para 를 지울 때 메모를 달 문단: 같은 영역의 다음(없으면 이전) 글자 문단. 없으면 None."""
+    parent = para.el.getparent()
+    siblings = [q for q in doc.paras if q.el.getparent() is parent and q.text.strip() and q is not para]
+    nxt = [q for q in siblings if q.index > para.index]
+    prv = [q for q in siblings if q.index < para.index]
+    if after:
+        return nxt[0] if nxt else (prv[-1] if prv else None)
+    return prv[-1] if prv else (nxt[0] if nxt else None)

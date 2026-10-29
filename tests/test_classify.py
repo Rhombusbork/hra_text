@@ -14,7 +14,7 @@ def _roles(doc):
 def test_synthetic_roles(sample_hwpx):
     doc = Document.open(sample_hwpx)
     roles = dict((t, r) for t, r in _roles(doc) if t)
-    assert roles["■ 경영서"] == "CATEGORY"
+    assert roles["■ 경영서 발표자용"] == "CATEGORY"  # 일부만 빨간 글씨 → 역할은 CATEGORY
     assert roles["가짜 제목"] == "COVER_TITLE"
     assert roles["목차"] == "TOC_TITLE"
     assert roles["소    속"] == "COVER_TABLE"

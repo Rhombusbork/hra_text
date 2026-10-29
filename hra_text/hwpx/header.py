@@ -99,6 +99,7 @@ class Header:
         }
         self._char_keys = {_canonical(e): i for i, e in self._char.items()}
         self._para_keys = {_canonical(e): i for i, e in self._para.items()}
+        self._border_keys = {_canonical(e): i for i, e in self._border.items()}
 
     # ---- 스타일 ----
     def style_name(self, style_id: str) -> str:
@@ -225,6 +226,21 @@ class Header:
             return None
         face = win.get("faceColor", "none")
         return None if face.lower() == "none" else face.upper()
+
+    def border_visible(self, bf_id: str) -> bool:
+        """테두리 선이 하나라도 있거나 배경이 있으면 True (문단 테두리/배경 판정용)."""
+        bf = self._border.get(bf_id)
+        if bf is None:
+            return False
+        for side in ("leftBorder", "rightBorder", "topBorder", "bottomBorder"):
+            b = bf.find(f"hh:{side}", NS)
+            if b is not None and b.get("type", "NONE") != "NONE":
+                return True
+        fill = self.fill_color(bf_id)
+        return fill is not None and fill != "#FFFFFF"
+
+    def derive_border_fill(self, base_id: str, mutate: Callable[[etree._Element], None]) -> str:
+        return self._derive(self._border, self._border_keys, ".//hh:borderFills", base_id, mutate)
 
     # ---- 공통 ----
     def _derive(self, table, keys, container_xpath, base_id, mutate) -> str:

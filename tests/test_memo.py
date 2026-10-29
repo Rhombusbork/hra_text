@@ -15,8 +15,8 @@ WHEN = datetime(2026, 10, 29, 12, 0, tzinfo=timezone.utc)
 
 def _fixed_with_memos(path, tmp_path):
     doc = Document.open(path)
-    texts_before = [p.text for p in doc.paras if p.role != "SKIP"]
     changes = run_rules(doc)
+    texts_before = [p.text for p in doc.paras if p.role != "SKIP"]  # 규칙 적용 후, 메모 넣기 전
     n = add_memos(doc, changes, when=WHEN)
     out = Document.open(doc.save(tmp_path / "out.hwpx"))
     return out, n, texts_before

@@ -93,3 +93,12 @@ def insert_memo(doc: "Document", para_el: etree._Element, lines: list[str], *,
     last.findall("hp:t", NS)[-1].addnext(
         _ctrl(etree.Element(hp("fieldEnd"), beginIDRef=str(begin_id), fieldid=str(field_id))))
     doc.touched.add(para_el)
+
+
+def memo_texts(container_el) -> list[str]:
+    """요소 안에 이미 달린 메모들의 글자 (같은 지적을 또 하지 않으려고 확인할 때)."""
+    out = []
+    for fb in container_el.iter(hp("fieldBegin")):
+        if fb.get("type") == "MEMO":
+            out.append("".join(t.text or "" for t in fb.iter(hp("t"))))
+    return out

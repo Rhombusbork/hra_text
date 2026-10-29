@@ -18,7 +18,7 @@ NS_DECL = (
 DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>'
 
 
-def _char(cid, height, color="#000000", bold=False, font="0"):
+def _char(cid, height, color="#000000", bold=False, font="0", italic=False, underline="NONE"):
     return (
         f'<hh:charPr id="{cid}" height="{height}" textColor="{color}" shadeColor="none" '
         f'useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1">'
@@ -26,8 +26,9 @@ def _char(cid, height, color="#000000", bold=False, font="0"):
         f'other="{font}" symbol="{font}" user="{font}"/>'
         '<hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>'
         '<hh:spacing hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>'
+        + ("<hh:italic/>" if italic else "")
         + ("<hh:bold/>" if bold else "")
-        + '<hh:underline type="NONE" shape="SOLID" color="#000000"/></hh:charPr>'
+        + f'<hh:underline type="{underline}" shape="SOLID" color="#000000"/></hh:charPr>'
     )
 
 
@@ -64,15 +65,17 @@ HEADER = (
         for lang in ("LATIN", "HANJA", "JAPANESE", "OTHER", "SYMBOL", "USER")
     )
     + "</hh:fontfaces>"
-    '<hh:borderFills itemCnt="3">'
+    '<hh:borderFills itemCnt="4">'
     '<hh:borderFill id="1" threeD="0" shadow="0"/>'
     '<hh:borderFill id="2" threeD="0" shadow="0"><hc:fillBrush><hc:gradation type="RADIAL" angle="90" '
     'centerX="0" centerY="0" step="255" colorNum="2" stepCenter="50" alpha="0"><hc:color value="#000000"/>'
     '<hc:color value="#FFFFFF"/></hc:gradation></hc:fillBrush></hh:borderFill>'
     '<hh:borderFill id="3" threeD="0" shadow="0"><hc:fillBrush><hc:winBrush faceColor="#DCDCDC" '
     'hatchColor="#000000" alpha="0"/></hc:fillBrush></hh:borderFill>'
+    '<hh:borderFill id="4" threeD="0" shadow="0"><hc:fillBrush><hc:winBrush faceColor="#FFFF00" '
+    'hatchColor="#000000" alpha="0"/></hc:fillBrush></hh:borderFill>'
     "</hh:borderFills>"
-    '<hh:charProperties itemCnt="7">'
+    '<hh:charProperties itemCnt="9">'
     + _char(0, 1000)
     + _char(1, 1200, bold=True)
     + _char(2, 3200, bold=True)
@@ -80,6 +83,8 @@ HEADER = (
     + _char(4, 1000, color="#FF0000")
     + _char(5, 800)
     + _char(6, 1050, font="1")
+    + _char(7, 1000, color="#00AA00", italic=True, underline="BOTTOM")
+    + _char(8, 1000, color="#0000FF", underline="BOTTOM")
     + "</hh:charProperties>"
     '<hh:paraProperties itemCnt="4">'
     + _para(0)
@@ -133,9 +138,26 @@ MEMO = (
     '<hp:subList id="">' + p("메모 내용입니다.") + "</hp:subList></hp:fieldBegin></hp:ctrl>"
 )
 MEMO_END = '<hp:ctrl><hp:fieldEnd beginIDRef="9" fieldid="9"/></hp:ctrl>'
+PAGE_NUM = '<hp:ctrl><hp:pageNum pos="BOTTOM_CENTER" formatType="DIGIT" sideChar=""/></hp:ctrl>'
+
+
+def runs_p(runs, para=0, style=0):
+    """여러 런 문단: runs = [(글자, charPr), ...]"""
+    body = "".join(f'<hp:run charPrIDRef="{c}"><hp:t>{escape(t)}</hp:t></hp:run>' for t, c in runs)
+    return (f'<hp:p id="0" paraPrIDRef="{para}" styleIDRef="{style}" pageBreak="0" columnBreak="0" '
+            f'merged="0">{body}</hp:p>')
+
+
+LINK = (
+    '<hp:p id="0" paraPrIDRef="1" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">'
+    '<hp:run charPrIDRef="0"><hp:t>링크 앞 </hp:t></hp:run>'
+    '<hp:run charPrIDRef="8"><hp:ctrl><hp:fieldBegin id="7" type="HYPERLINK" name="" editable="0" '
+    'dirty="0" fieldid="7"/></hp:ctrl><hp:t>링크 글자</hp:t>'
+    '<hp:ctrl><hp:fieldEnd beginIDRef="7" fieldid="7"/></hp:ctrl></hp:run></hp:p>'
+)
 
 SECTION_BODY = "".join([
-    p("■ 경영서", char=1),
+    runs_p([("■ 경영서", 1), (" 발표자용", 4)]),
     p(""),
     p("가짜 제목", char=2, para=2),
     p(para=2, inner=table([[p("목차", para=2)], [p("Ⅰ. 첫 장", char=1, para=2)]])),
@@ -145,14 +167,21 @@ SECTION_BODY = "".join([
     p(inner=table([[p("떠 있는 표", para=3)]], treat_as_char=False, vert_offset=3000)
       + table([[p("Ⅰ. 첫 장", char=3)]], fill="2")),
     p("1. 둘째 단위", char=1, para=1),
+    p(""),
     p("1) 셋째 단위", char=1, para=1),
     p("① 넷째 단위", para=1),
     p("본문입니다\t탭 뒤 글자", para=1, inner=MEMO, after=MEMO_END),
+    p(""),
+    p(""),
+    p(""),
+    p("강조한 본문", char=7, para=1),
+    LINK,
+    p("쪽 번호가 든 본문", para=1, inner=PAGE_NUM),
     p("  앞에 공백이 있는 본문", char=6, para=3, style=1),
     p("본문내용(맑은 고딕, 10, 들여쓰기 10)", char=4, para=1),
     p("출처 : 가짜 출처", char=5, para=2),
     p("<1장 작성자: 홍길동>", char=5, para=2),
-    p(para=0, inner=table([[p("배경", para=0), p("목적", para=0)]], treat_as_char=False)),
+    p(para=0, inner=table([[p("배경", para=0), p("목적", para=0)]], treat_as_char=False, fill="4")),
     p(inner=table([[p("Ⅱ. 느낀 점", char=3)]], fill="2")),
     p("홍길동", char=1, para=1),
     p("느낀 점 본문입니다.", para=1),

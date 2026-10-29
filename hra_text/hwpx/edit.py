@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Callable
 from lxml import etree
 
 from .header import LANGS, set_line_spacing_percent, set_margin_pt  # noqa: F401 (재노출)
-from .ns import NS, hh
+from .ns import NS, hh, hp
 
 if TYPE_CHECKING:
     from ..document import Document
@@ -119,3 +119,36 @@ def drop_layout_cache(doc: "Document") -> None:
     for p in doc.touched:
         for arr in p.findall("hp:linesegarray", NS):
             p.remove(arr)
+
+
+# ---- 테두리/배경 (borderFill) 변경 함수 ----
+def border_no_fill(el) -> None:
+    """배경(fillBrush)만 지운다. 테두리 선은 그대로."""
+    for brush in el.findall("hc:fillBrush", NS):
+        el.remove(brush)
+
+
+def border_clean(el) -> None:
+    """테두리 선도 배경도 없게 (문단 테두리/배경 제거용)."""
+    border_no_fill(el)
+    for side in ("leftBorder", "rightBorder", "topBorder", "bottomBorder"):
+        b = el.find(f"hh:{side}", NS)
+        if b is not None:
+            b.set("type", "NONE")
+
+
+def link_runs(para_el) -> set:
+    """하이퍼링크(fieldBegin type=HYPERLINK ~ fieldEnd) 안에 있는 글자 런."""
+    open_ids: set[str] = set()
+    links = set()
+    for run in para_el.iterfind("hp:run", NS):
+        for child in run:
+            if child.tag == hp("ctrl"):
+                for f in child:
+                    if f.tag == hp("fieldBegin") and f.get("type") == "HYPERLINK":
+                        open_ids.add(f.get("id"))
+                    elif f.tag == hp("fieldEnd"):
+                        open_ids.discard(f.get("beginIDRef"))
+            elif child.tag == hp("t") and open_ids:
+                links.add(run)
+    return links

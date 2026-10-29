@@ -121,9 +121,14 @@ def test_shared_para_shape_not_modified_in_place(sample_hwpx, tmp_path):
     assert doc.header.para("3").margins_pt == before
 
 
+def _modifications(changes):
+    """알림만 하는 변경(R14 등 check)은 빼고 실제로 고친 것."""
+    return [c for c in changes if not c.extra.get("check")]
+
+
 def test_idempotent(sample_hwpx, tmp_path):
     doc, _ = _fixed(sample_hwpx, tmp_path)
-    assert run_rules(doc) == []
+    assert _modifications(run_rules(doc)) == []
 
 
 def test_only_selected_rules(sample_hwpx, tmp_path):
@@ -163,4 +168,4 @@ def test_regression_against_user_correction(tmp_path):
     assert stats["matched"] > 500
     unexpected = {(d.role, d.attr) for d in diffs} - KNOWN_REFERENCE_MISSES
     assert not unexpected, unexpected
-    assert run_rules(ours) == [], "결과를 다시 고치면 바뀌는 게 없어야 한다"
+    assert _modifications(run_rules(ours)) == [], "결과를 다시 고치면 바뀌는 게 없어야 한다"
