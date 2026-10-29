@@ -120,3 +120,8 @@ def test_consecutive_same_fixes_share_one_memo():
     assert [len(r) for r in runs] == [3, 1, 1, 1], "같은 수정이 이어질 때만 묶인다"
     lines = Writer().lines(runs[0][0], same_below=2)
     assert COMMON["same_below"].format(what="문단", n=2) in lines
+
+
+def test_silent_fixes_have_no_memo():
+    from hra_text.memo import SILENT
+    assert SILENT == {("CATEGORY", "intent"), ("COVER_TITLE", "intent")}

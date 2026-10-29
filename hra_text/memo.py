@@ -80,6 +80,10 @@ def _first_text_para_in_table(doc: Document, tbl) -> Para | None:
     return None
 
 
+# 고치되 메모는 달지 않는 것 [U] 2026-10-29: 표지의 ■ 분류 표시·표지 제목의 들여쓰기
+SILENT = {("CATEGORY", "intent"), ("COVER_TITLE", "intent")}
+
+
 def plan(doc: Document, changes: list[Change]) -> list[MemoPlan]:
     by_el = {p.el: p for p in doc.paras}
     plans: dict[int, MemoPlan] = {}
@@ -92,6 +96,8 @@ def plan(doc: Document, changes: list[Change]) -> list[MemoPlan]:
 
     obj_para = {id(o): q for q in doc.paras for o in q.tables + q.pictures}
     for c in changes:
+        if (c.role, c.key) in SILENT:
+            continue
         p = by_el.get(c.para_el)
         obj = c.extra.get("obj")
         if obj is not None and id(obj) in obj_para:  # R07: 옮겨진 개체가 지금 있는 문단 기준
