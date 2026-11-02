@@ -61,8 +61,10 @@ jobs:
           if [ -f exe_error.log ]; then tail -n 15 exe_error.log | while IFS= read -r line; do echo "::error::exe $line"; done; fi
           if [ "$code" = "124" ]; then echo "::error::exe 가 5분 안에 끝나지 않음 (멈춤)"; fi
           ls -la . 결과 || true
-          test -f 결과/smoke_피드백.hwpx || { echo "::error::결과 파일이 없음 (종료 코드 $code)"; exit 1; }
-          echo "::notice::exe 점검 통과 — 결과/smoke_피드백.hwpx 생성"
+          for f in 결과/smoke_피드백.hwpx 결과/smoke_수정본.hwpx 결과/smoke_변경내역.txt; do
+            test -f "$f" || { echo "::error::결과 파일이 없음: $f (종료 코드 $code)"; exit 1; }
+          done
+          echo "::notice::exe 점검 통과 — smoke_피드백.hwpx·smoke_수정본.hwpx·smoke_변경내역.txt 생성"
       - uses: actions/upload-artifact@v4
         with:
           name: HRA_Tool
