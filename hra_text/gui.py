@@ -254,6 +254,17 @@ def run_app() -> None:
     root.mainloop()
 
 
+def _echo(text: str) -> None:
+    """콘솔이 없거나(창 프로그램) 한글을 못 쓰는 인코딩이어도 오류 없이 출력."""
+    out = sys.stdout
+    if out is None:
+        return
+    try:
+        out.write(text + "\n")
+    except UnicodeEncodeError:
+        out.buffer.write((text + "\n").encode("utf-8", errors="replace")) if hasattr(out, "buffer") else None
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     if argv[:1] == ["--mail-check"]:
@@ -270,7 +281,7 @@ def main(argv: list[str] | None = None) -> int:
         lines: list[str] = []
         fix_files(files, lines.append)
         if os.environ.get("HRA_NO_DIALOG"):  # 자동 점검(빌드)용: 알림 창 없이
-            print("\n".join(lines))
+            _echo("\n".join(lines))
             return 0
         try:
             import tkinter as tk
@@ -279,7 +290,7 @@ def main(argv: list[str] | None = None) -> int:
             tk.Tk().withdraw()
             messagebox.showinfo("HRA 보고서 도구", "\n".join(lines) or "고칠 파일이 없습니다.")
         except Exception:
-            print("\n".join(lines))
+            _echo("\n".join(lines))
         return 0
     run_app()
     return 0
