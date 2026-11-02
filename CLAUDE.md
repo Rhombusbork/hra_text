@@ -150,7 +150,7 @@ tests/
 | 7 | R15 안내문 삭제, R16 쪽 번호, R09 빈 줄(줄이기만), R10 앞 공백, R13 숨은 서식, R14 목차 대조 | ✅ 2026-10-29. 고전 템플릿 붉은 글씨 5곳 삭제, 경영서 피드백 메모의 빈 줄 지적 재현, 결과 재실행 시 변경·메모 0 |
 | 8 | R11 띄어쓰기(규칙·사전) | ✅ 2026-10-29. 기업실무 사용자 수정(직종별 유연근무제 제안, 경영학과 4학년, AI 시대 S2W의) 재현 + 붙은 글자 5건 사전 등록 |
 | 9 | **합본 제작** (`hra-merge`, 별도 프로그램) — 아래 "9단계 합본 계획" | ✅ 2026-10-29 자동 검사(참조·그림·필드·ID 이상 0, 메모 0) / **한글에서 열림 확인 대기** |
-| 10 | **배포**: 창 프로그램 `HRA_Tool.exe`(서식 교정·합본·메일 탭, exe에 끌어다 놓기, `--mail-check`) + 메일 자동 교정 `hra-mail`. GitHub Actions(windows-latest)에서 jlink Java + PyInstaller로 빌드 → Actions Artifacts. 사용법 [docs/사용법.md](docs/사용법.md) | 빌드 구성 ✅ / 윈도우 실행 확인 대기 |
+| 10 | **배포**: 창 프로그램 `HRA_Tool.exe`(서식 교정·합본·메일 탭, exe에 끌어다 놓기, `--mail-check`) + 메일 자동 교정 `hra-mail`. GitHub Actions(windows-latest)에서 jlink Java + PyInstaller로 빌드 → Actions Artifacts. 사용법 [docs/사용법.md](docs/사용법.md) | ✅ 2026-11-02 윈도우 빌드 성공(테스트 통과, exe로 합성 문서 교정 점검 통과, 배포 파일 약 43MB) / **사용자 PC에서 실행 확인 대기** |
 
 ## 9단계 합본 계획 (2026-10-29, 계획만 — 사용자 결정 반영)
 
@@ -204,6 +204,7 @@ hra-merge 폴더 --cover …                                  # 폴더면 종류
 - `hra_text/mail.py` (`hra-mail setup|check|watch`): 네이버 IMAP(imap.naver.com:993, 앱 비밀번호), 읽기 전용(BODY.PEEK), UID 상태 파일로 중복 방지, 첫 실행은 오늘 메일부터, **답장 안 함**. 첨부 → `받은파일/날짜/`, 결과 → `결과/날짜/`, `처리기록.csv`. 설정·상태는 `%APPDATA%/HRA보고서도구/` (저장소 밖).
 - 표지 양식(참고 합본)은 배포판에 넣지 않는다(공개 저장소). 사용자가 한 번 골라 두면 기억.
 - `rules/__init__.py`의 `RULE_MODULES` 고정 목록: 배포판에서 규칙 모듈 자동 찾기가 안 될 때 대비. 규칙 파일 추가 시 함께 갱신(테스트가 검사).
+- exe 오류 처리: `packaging/hra_tool.py`가 모든 오류를 `%APPDATA%/HRA보고서도구/error.log`에 남긴다 (창 프로그램은 처리 안 된 오류가 나면 오류 창을 띄우고 멈추므로). 콘솔 출력은 `_echo`로 인코딩 오류 없이.
 - 빌드: `.github/workflows/windows-build.yml` — hwp2hwpx 빌드 → 테스트 → jlink → PyInstaller → exe로 합성 문서 교정 점검 → Artifacts 업로드. (자동 공개 배포 안 함)
 
 ## 개발 명령
