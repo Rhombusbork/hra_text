@@ -48,10 +48,21 @@ jobs:
           cp -r runtime dist/HRA_Tool/runtime
           cp docs/사용법.md dist/HRA_Tool/사용법.md
       - name: 배포판 점검 (exe 로 합성 문서 고치기)
+        timeout-minutes: 8
         run: |
           python -c "import sys; sys.path.insert(0,'tests'); import conftest, pathlib; conftest.build_hwpx(pathlib.Path('smoke.hwpx'))"
-          HRA_NO_DIALOG=1 ./dist/HRA_Tool/HRA_Tool.exe smoke.hwpx || true
-          test -f 결과/smoke_피드백.hwpx
+          export HRA_NO_DIALOG=1 HRA_ERROR_LOG="$PWD/exe_error.log"
+          set +e
+          timeout 300 ./dist/HRA_Tool/HRA_Tool.exe smoke.hwpx
+          code=$?
+          set -e
+          echo "exe 종료 코드: $code"
+          # 오류 내용은 로그인 없이도 보이는 '알림(annotation)'으로 남긴다
+          if [ -f exe_error.log ]; then tail -n 15 exe_error.log | while IFS= read -r line; do echo "::error::exe $line"; done; fi
+          if [ "$code" = "124" ]; then echo "::error::exe 가 5분 안에 끝나지 않음 (멈춤)"; fi
+          ls -la . 결과 || true
+          test -f 결과/smoke_피드백.hwpx || { echo "::error::결과 파일이 없음 (종료 코드 $code)"; exit 1; }
+          echo "::notice::exe 점검 통과 — 결과/smoke_피드백.hwpx 생성"
       - uses: actions/upload-artifact@v4
         with:
           name: HRA_Tool
