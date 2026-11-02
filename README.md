@@ -9,6 +9,6 @@ HRA 보고서(hwp/hwpx)를 양식에 맞게 자동 교정하고 피드백 메모
 
 ## 쓰는 법 (WSL)
 ```bash
-.venv/bin/hra-fix fix "제출본.hwp" -o output          # → output/제출본_피드백.hwpx (+ 변경내역.txt)
-.venv/bin/hra-merge 고친파일1.hwpx 고친파일2.hwpx --cover 참고합본.hwpx -o output/합본.hwpx --date "2026.11.07.(토)"
+.venv/bin/hra-fix fix "제출본.hwp" -o output          # → 제출본_피드백.hwpx(메모) + 제출본_수정본.hwpx(메모 없음) + 변경내역.txt
+.venv/bin/hra-merge 제출본1_수정본.hwpx 제출본2_수정본.hwpx --cover 참고합본.hwpx -o output/합본.hwpx --date "2026.11.07.(토)"
 ```

@@ -43,25 +43,13 @@ def _cmd_dump(args: argparse.Namespace) -> int:
 
 
 def _cmd_fix(args: argparse.Namespace) -> int:
-    import tempfile
-
-    from .document import Document
-    from .engine import run_rules
-    from .memo import add_memos
-    from .report import render as render_report
+    from .fixer import fix_document
 
     only = {r.strip().upper() for r in args.rules.split(",")} if args.rules else None
-    out_dir = Path(args.output)
-    with tempfile.TemporaryDirectory(prefix="hra_") as work:
-        for src in _collect(args.inputs, ".hwp") + _collect(args.inputs, ".hwpx"):
-            doc = Document.open(src, work_dir=Path(work))
-            changes = run_rules(doc, only)
-            memos = 0 if args.no_memo else add_memos(doc, changes, author=args.author)
-            dst = doc.save(out_dir / f"{src.stem}_피드백.hwpx")
-            report = out_dir / f"{src.stem}_변경내역.txt"
-            report.write_text(render_report(changes, title=src.name, memos=memos) + "\n", encoding="utf-8")
-            n_paras = len({id(c.para_el) for c in changes})
-            print(f"OK   {src.name} -> {dst.name}  (변경 {len(changes)}건, 문단 {n_paras}개, 메모 {memos}개)")
+    for src in _collect(args.inputs, ".hwp") + _collect(args.inputs, ".hwpx"):
+        r = fix_document(src, Path(args.output), author=args.author, only=only, memo=not args.no_memo)
+        names = " + ".join(p.name for p in (r.feedback, r.clean) if p is not None)
+        print(f"OK   {src.name} -> {names}  (변경 {r.changes}건, 문단 {r.paragraphs}개, 메모 {r.memos}개)")
     return 0
 
 
@@ -101,11 +89,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--all", action="store_true", help="메모·머리말 등(SKIP)도 표시")
     p.set_defaults(func=_cmd_dump)
 
-    p = sub.add_parser("fix", help="양식에 맞게 수정해 output/<이름>_피드백.hwpx 로 저장 (원본 유지)")
+    p = sub.add_parser("fix", help="양식에 맞게 수정: <이름>_피드백.hwpx(메모) + <이름>_수정본.hwpx(메모 없음) (원본 유지)")
     p.add_argument("inputs", nargs="+", help="hwp/hwpx 파일 또는 폴더")
     p.add_argument("-o", "--output", default="output", help="출력 폴더 (기본: output)")
     p.add_argument("--rules", help="적용할 규칙만 (예: R01,R03). 기본: 구현된 전부")
-    p.add_argument("--no-memo", action="store_true", help="메모를 달지 않음")
+    p.add_argument("--no-memo", action="store_true", help="메모 단 _피드백 파일은 만들지 않고 _수정본만")
     p.add_argument("--author", default="neoju", help="메모 작성자 이름 (기본: neoju)")
     p.set_defaults(func=_cmd_fix)
 

@@ -69,6 +69,7 @@ def test_check_fixes_and_skips_already_done(cfg, sample_hwpx):
     results = list(cfg.result_dir.rglob("*_피드백.hwpx"))
     assert len(results) == 1 and results[0].name == "hong_제출_피드백.hwpx"
     assert list(cfg.inbox_dir.rglob("hong_제출.hwpx"))
+    assert [p.name for p in cfg.result_dir.rglob("*_수정본.hwpx")] == ["hong_제출_수정본.hwpx"]
     assert (cfg.folder / "처리기록.csv").read_text(encoding="utf-8-sig").count("\n") == 2
     # 다시 확인하면 이미 처리한 메일은 건너뛴다
     imap2 = FakeImap({11: _mail("hong@naver.com", "제출.hwpx", data), 12: b""})

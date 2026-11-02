@@ -102,3 +102,24 @@ def memo_texts(container_el) -> list[str]:
         if fb.get("type") == "MEMO":
             out.append("".join(t.text or "" for t in fb.iter(hp("t"))))
     return out
+
+
+def strip_memos(root: etree._Element) -> tuple[int, set]:
+    """root 안의 메모(fieldBegin type=MEMO ~ 짝 fieldEnd)를 모두 지운다. 글자는 그대로.
+    (지운 메모 수, 메모가 있던 문단 요소들)을 돌려준다 — 그 문단들은 레이아웃 캐시를 지워야 한다."""
+    begins = [fb for fb in root.iter(hp("fieldBegin")) if fb.get("type") == "MEMO"]
+    ids = {fb.get("id") for fb in begins}
+    paras: set = set()
+
+    def drop(ctrl):
+        para = next((a for a in ctrl.iterancestors() if a.tag == hp("p")), None)
+        ctrl.getparent().remove(ctrl)
+        if para is not None:
+            paras.add(para)
+
+    for fb in begins:
+        drop(fb.getparent())
+    for fe in list(root.iter(hp("fieldEnd"))):
+        if fe.get("beginIDRef") in ids:
+            drop(fe.getparent())
+    return len(begins), paras

@@ -13,6 +13,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from ..hwpx.memo import strip_memos
 from ..hwpx.ns import NS, hc, hp
 from ..hwpx.package import HwpxPackage
 from .headermap import NONE_REF, HeaderMerger
@@ -110,19 +111,6 @@ def import_images(target: HwpxPackage, src: HwpxPackage) -> dict[str, str]:
 
 
 # ---------------------------------------------------------------- 본문 가져오기
-def _strip_memos(root) -> int:
-    begins = [fb for fb in root.iter(hp("fieldBegin")) if fb.get("type") == "MEMO"]
-    ids = {fb.get("id") for fb in begins}
-    for fb in begins:
-        ctrl = fb.getparent()
-        ctrl.getparent().remove(ctrl)
-    for fe in list(root.iter(hp("fieldEnd"))):
-        if fe.get("beginIDRef") in ids:
-            ctrl = fe.getparent()
-            ctrl.getparent().remove(ctrl)
-    return len(begins)
-
-
 def _strip_section_settings(p) -> None:
     for sec_pr in p.findall("hp:run/hp:secPr", NS):
         sec_pr.getparent().remove(sec_pr)
@@ -161,7 +149,7 @@ def import_body(src: HwpxPackage, maps: dict, bin_map: dict, new_id: IdCounter) 
     memos = 0
     for p in paras:
         _strip_section_settings(p)
-        memos += _strip_memos(p)
+        memos += strip_memos(p)[0]
         for arr in p.iter(hp("linesegarray")):
             arr.getparent().remove(arr)
     field_ids: dict[str, tuple[str, str]] = {}

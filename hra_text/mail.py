@@ -6,7 +6,7 @@
 
 폴더 (기본: 문서\\HRA메일):
   받은파일\\2026-10-29\\보낸사람_파일이름.hwp   ← 내려받은 원본
-  결과\\2026-10-29\\파일이름_피드백.hwpx + _변경내역.txt
+  결과\\2026-10-29\\파일이름_피드백.hwpx(메모) + _수정본.hwpx(메모 없음) + _변경내역.txt
   처리기록.csv
 """
 
@@ -18,7 +18,6 @@ import email
 import imaplib
 import json
 import re
-import tempfile
 import time
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -113,39 +112,25 @@ def attachments(raw: bytes) -> tuple[dict, list[tuple[str, bytes]]]:
 
 
 def _unique(path: Path) -> Path:
-    if not path.exists():
-        return path
-    for i in range(2, 1000):
-        cand = path.with_name(f"{path.stem}({i}){path.suffix}")
-        if not cand.exists():
-            return cand
-    raise FileExistsError(path)
+    from .fixer import unique_path
+
+    return unique_path(path)
 
 
-# ---------------------------------------------------------------- 처리
 def fix_file(src: Path, out_dir: Path, author: str) -> dict:
-    """한 파일 서식 교정 (hra-fix fix 와 같은 처리)."""
-    from .document import Document
-    from .engine import run_rules
-    from .memo import add_memos
-    from .report import render
+    """한 파일 서식 교정 (hra-fix fix 와 같은 처리): _피드백(메모) + _수정본(메모 없음) + _변경내역."""
+    from .fixer import fix_document
 
-    out_dir.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="hra_mail_") as work:
-        doc = Document.open(src, work_dir=Path(work))
-        changes = run_rules(doc)
-        memos = add_memos(doc, changes, author=author)
-        dst = doc.save(_unique(out_dir / f"{src.stem}_피드백.hwpx"))
-        (out_dir / f"{src.stem}_변경내역.txt").write_text(render(changes, title=src.name, memos=memos) + "\n",
-                                                        encoding="utf-8")
-    return {"result": str(dst), "changes": len(changes), "memos": memos}
+    r = fix_document(src, out_dir, author=author, unique=True)
+    return {"result": str(r.feedback), "clean": str(r.clean), "report": str(r.report),
+            "changes": r.changes, "memos": r.memos}
 
 
 def _log(cfg: MailConfig, row: dict) -> None:
     log = cfg.folder / "처리기록.csv"
     new = not log.exists()
     with open(log, "a", encoding="utf-8-sig", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=["시각", "보낸사람", "제목", "파일", "결과", "변경", "메모", "오류"])
+        w = csv.DictWriter(f, fieldnames=["시각", "보낸사람", "제목", "파일", "결과", "수정본", "변경", "메모", "오류"])
         if new:
             w.writeheader()
         w.writerow(row)
@@ -182,11 +167,14 @@ def check_once(cfg: MailConfig, *, imap=None, log=print) -> int:
                 saved.parent.mkdir(parents=True, exist_ok=True)
                 saved.write_bytes(content)
                 row = {"시각": datetime.now().isoformat(timespec="seconds"), "보낸사람": info["from"],
-                       "제목": info["subject"], "파일": str(saved), "결과": "", "변경": "", "메모": "", "오류": ""}
+                       "제목": info["subject"], "파일": str(saved), "결과": "", "수정본": "", "변경": "", "메모": "",
+                       "오류": ""}
                 try:
                     res = fix_file(saved, cfg.result_dir / day, cfg.author)
-                    row.update({"결과": res["result"], "변경": res["changes"], "메모": res["memos"]})
-                    log(f"고침: {saved.name} → {Path(res['result']).name} (변경 {res['changes']}건, 메모 {res['memos']}개)")
+                    row.update({"결과": res["result"], "수정본": res["clean"], "변경": res["changes"],
+                                "메모": res["memos"]})
+                    log(f"고침: {saved.name} → {Path(res['result']).name} + {Path(res['clean']).name} "
+                        f"(변경 {res['changes']}건, 메모 {res['memos']}개)")
                 except Exception as e:  # 한 파일이 실패해도 나머지는 계속
                     row["오류"] = str(e)
                     log(f"실패: {saved.name} — {e}")

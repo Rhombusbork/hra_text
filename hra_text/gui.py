@@ -50,7 +50,8 @@ def fix_files(files: list[Path], log) -> Path | None:
         out = f.parent / "결과"
         try:
             res = fix_file(f, out, _settings().get("author", "neoju"))
-            log(f"고침: {f.name} → 결과\\{Path(res['result']).name} (변경 {res['changes']}건, 메모 {res['memos']}개)")
+            log(f"고침: {f.name} → 결과\\{Path(res['result']).name}(메모) + {Path(res['clean']).name}(메모 없음) "
+                f"(변경 {res['changes']}건, 메모 {res['memos']}개)")
         except Exception as e:
             log(f"실패: {f.name} — {e}")
     return out
