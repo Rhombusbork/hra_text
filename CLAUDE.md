@@ -95,12 +95,13 @@ hra_text/
   document.py         # Document: 패키지 + header + 문단 목록(+역할), touched(수정 문단), save
   engine.py           # run_rules: rules.base.ORDER 순서로 등록된 규칙 실행
   compare.py          # 우리 결과 vs 사람이 고친 수정본: 글자로 문단 짝짓기 → 서식 비교
+  fixer.py            # fix_document: 한 파일 교정 → _피드백(메모) + _수정본(메모 없음) + _변경내역
   hwpx/
     package.py        # zip 열기/저장 (mimetype 무압축·첫 항목 유지, 나머지 그대로 보존)
     header.py         # charPr/paraPr/style/font 레지스트리: "이 속성 조합의 ID 찾기/없으면 생성"
     section.py        # 문단/런/표/그림 순회, 텍스트 범위 위치(path) 표현
     edit.py           # 글자/문단 모양 바꾸기(derive → IDRef 교체), 레이아웃 캐시 삭제
-    memo.py           # fieldBegin(MEMO)/fieldEnd XML 삽입, 번호·작성자·작성 시각
+    memo.py           # fieldBegin(MEMO)/fieldEnd XML 삽입·제거(strip_memos), 번호·작성자·작성 시각
   model.py            # Change (규칙이 남기는 변경 기록)
   memo.py             # Change → 메모 계획(본문 문단당·표당 1개, 빈 줄 합침) → 문구(첫 회 전체/이후 짧게)
   classify.py         # 역할 분류 (FORMAT_RULES §1)
@@ -126,7 +127,8 @@ tests/
 - **메모 범위**: 텍스트 범위에 메모를 달려면 런을 분할해 fieldBegin/fieldEnd 컨트롤을 끼워 넣는다. 샘플 구조: `hp:ctrl > hp:fieldBegin[type=MEMO] > hp:parameters + hp:subList > hp:p` … `hp:ctrl > hp:fieldEnd[beginIDRef]`.
 - **문단 여백 단위**: `hh:paraPr`의 여백·줄간격은 `hp:switch` 안 `hp:case`(1pt=100)와 `hp:default`(1pt=200) 두 벌이 있다. 둘 다 같은 pt로 맞춰야 한다 (FORMAT_RULES §0 ※).
 - **텍스트 추출**: `hp:t` 안의 `hp:tab`/`hp:lineBreak` 뒤 tail 텍스트까지 읽는다.
-- **원본 보존**: 입력 파일은 절대 덮어쓰지 않는다. 출력은 `output/{원본명}_피드백.hwpx`.
+- **원본 보존**: 입력 파일은 절대 덮어쓰지 않는다.
+- **결과 두 개** [U] 2026-11-02: `{원본명}_피드백.hwpx`(메모, 확인용) + `{원본명}_수정본.hwpx`(메모 없음, 최종본·합본용) + `_변경내역.txt`. `hra_text/fixer.py`의 `fix_document`를 명령행·창·메일이 함께 쓴다 (메모를 단 뒤 저장 → 같은 문서에서 메모를 모두 지우고 저장).
 - **메모 정책**: 고친 것마다 메모 — 본문 문단 1개당 1개, 표 1개당 1개, 빈 줄은 다음 글자 문단 메모에 합침. **바로 앞 메모와 같은 수정이면 새 메모 없이 앞 메모에 '아래 … n개도 같은 문제'**. 상세는 FORMAT_RULES §3.
 - **표 위치**: 표 바깥 문단 정렬은 받은 대로 둔다. 표는 글자처럼 취급만 맞춘다 (R04·R07).
 - **양식 안내문**: 템플릿의 붉은 글씨(`#FF0000`)는 지워야 할 안내문(R15). 반대로 H1 칸의 흰 글씨·검은 배경, 표지 표 항목명의 회색 글씨는 템플릿 디자인이라 유지(R13 예외).
@@ -163,7 +165,7 @@ tests/
 
 ### 사용자 결정 [U] 2026-10-29
 - **합본 제작은 별도 프로그램** `hra-merge` (서식 교정 `hra-fix`와 분리, hwpx 처리 코드만 공유).
-- 작업 흐름: 제출본을 **하나씩** `hra-fix fix` → 한글에서 확인·마무리 → 확인된 파일들을 `hra-merge`로 합친다. `hra-merge`는 서식 교정을 하지 않는다.
+- 작업 흐름: 제출본을 **하나씩** `hra-fix fix` → `_피드백`으로 확인, 필요하면 `_수정본`을 직접 마무리 → 확인된 **`_수정본`** 파일들을 `hra-merge`로 합친다. `hra-merge`는 서식 교정을 하지 않는다.
 - 합칠 때 **메모는 모두 뺀다**.
 - 일정표: 참고 합본의 일정표를 **그대로 넣은 뒤, 입력받은 내용으로 자동으로 고친다**.
 - 결과는 **hwpx**로 충분.
@@ -215,7 +217,7 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/hra-fix convert <hwp 파일|폴더> -o output   # hwp → hwpx (원본 유지)
 .venv/bin/hra-fix dump <hwp/hwpx 파일|폴더> [-o output]  # 문단별 역할·서식 표
 .venv/bin/hra-fix fix <hwp/hwpx 파일|폴더> [-o output] [--rules R01,R03] [--no-memo] [--author 이름]
-                                       # → <이름>_피드백.hwpx(메모 포함) + <이름>_변경내역.txt
+                                       # → <이름>_피드백.hwpx(메모) + <이름>_수정본.hwpx(메모 없음) + <이름>_변경내역.txt
 .venv/bin/hra-fix compare <우리 결과.hwpx> <사람 수정본>      # 서식 차이 요약
 .venv/bin/hra-merge <파일…> --cover <참고 합본.hwpx> [-o output/합본.hwpx] [--date …] [--order 목록.txt]  # 합본 (메모 제거)
 .venv/bin/hra-mail setup | check | watch --minutes 5   # 네이버 메일 첨부 자동 교정 (답장 안 함)
