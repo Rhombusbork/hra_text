@@ -11,8 +11,8 @@ EXPECTED = {
     "COVER_TITLE": (32, True),
     "TOC_TITLE": (16, False),
     "TOC_ITEM": (12, True),
-    "INTRO_TITLE": (12, True),
-    "INTRO_IMAGE": (10, False),
+    "INTRO_TITLE": (None, None),  # 책 소개 표 제목·그림 칸은 받은 대로 [U] 2026-11-03
+    "INTRO_IMAGE": (None, None),
     "INTRO_BODY": (10, False),
     "READING_TITLE": (12, True),
     "READING_BYLINE": (11, False),
@@ -21,11 +21,11 @@ EXPECTED = {
     "H2": (12, True),
     "H3": (11, True),
     "H4": (10, False),
-    "REFLECTION_NAME": (None, None),  # 느낀 점 이름 줄은 받은 대로 [U] 2026-11-03
+    "REFLECTION_NAME": (11, True),  # 느낀 점 이름 줄 11pt 진하게 [U] 2026-11-03
     "BODY": (10, False),
     "REFLECTION": (10, False),
     "TABLE_CELL": (10, None),  # 표 안 진하게는 받은 대로 [U] 2026-11-03
-    "AUTHOR_TAG": (8, False),
+    "AUTHOR_TAG": (None, None),  # 작성자 표기는 받은 대로 [U] 2026-11-03
 }
 
 

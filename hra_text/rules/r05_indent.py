@@ -6,7 +6,8 @@ from . import register
 from .base import Rule
 
 INDENT_10 = {"H2", "H3", "H4", "BODY", "REFLECTION_NAME", "REFLECTION"}
-SKIP_ROLES = {"SOURCE", "EMPTY", "INTRO_BODY"}  # INTRO_BODY: 받은 대로 [U] 2026-10-29
+# INTRO_BODY [U] 2026-10-29, AUTHOR_TAG·INTRO_TITLE·INTRO_IMAGE [U] 2026-11-03: 받은 대로
+SKIP_ROLES = {"SOURCE", "EMPTY", "INTRO_TITLE", "INTRO_IMAGE", "INTRO_BODY", "AUTHOR_TAG"}
 KEYS = ("intent", "left", "right")
 
 

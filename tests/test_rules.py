@@ -70,14 +70,14 @@ def test_source_and_author_tag(sample_hwpx, tmp_path):
     src = _fmt(doc, _para(doc, "출처 : 가짜 출처"))
     assert (src["sizes"], src["align"], src["intent"]) == ({8.0}, "RIGHT", 0.0)  # R08
     tag = _fmt(doc, _para(doc, "<1장 작성자: 홍길동>"))
-    assert (tag["sizes"], tag["align"]) == ({8.0}, "RIGHT")
+    assert (tag["sizes"], tag["align"]) == ({8.0}, "CENTER"), "작성자 표기는 받은 대로 (합성 문서: 8pt 가운데)"
 
 
-def test_reflection_name_size_and_bold_kept(sample_hwpx, tmp_path):
-    """느낀 점 이름 줄은 크기·진하게를 받은 대로 둔다 [U] 2026-11-03 (합성 문서: 12pt 진하게)."""
+def test_reflection_name_11pt_bold(sample_hwpx, tmp_path):
+    """느낀 점 이름 줄은 11pt 진하게 [U] 2026-11-03 (합성 문서: 12pt 진하게 → 11pt)."""
     doc, _ = _fixed(sample_hwpx, tmp_path)
     f = _fmt(doc, _para(doc, "홍길동", "REFLECTION_NAME"))
-    assert (f["sizes"], f["bold"]) == ({12.0}, {True})
+    assert (f["sizes"], f["bold"]) == ({11.0}, {True})
 
 
 def test_object_paragraph_alignment_kept(sample_hwpx, tmp_path):

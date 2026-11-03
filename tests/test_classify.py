@@ -89,3 +89,17 @@ def test_photo_table_outside_intro_section_is_normal_table(tmp_path):
         p("느낀 점 본문입니다.", para=1), p("느낀 점 본문입니다.", para=1) + photo)))
     roles = {q.text.strip(): q.role for q in doc.paras if q.text.strip()}
     assert roles["③매장 분위기"] == "TABLE_CELL"
+
+
+def test_author_tag_detection():
+    from hra_text.classify import AUTHOR_TAG_MAX_LEN, RE_AUTHOR_TAG
+
+    def is_tag(t):
+        return bool(RE_AUTHOR_TAG.search(t)) and len(t.strip()) <= AUTHOR_TAG_MAX_LEN
+
+    assert is_tag("<9~58.p 작성자: 김지섭>")
+    assert is_tag("<111~153p 작성자 : 경제학과 최형기>")  # 샘플 최장 25자
+    assert is_tag("<262~298p 작성자 : 오현주><p.262~298>")  # 꺾쇠 두 쌍
+    assert not is_tag("<듀얼 브레인>은 필독서다. 작성자는 이선 몰릭이다 >")  # 작성자가 꺾쇠 밖
+    assert not is_tag("<" + "가" * 31 + " 작성자: 홍길동>")  # 꺾쇠 안이 30자를 넘음
+    assert not is_tag("익명이라는 이유만으로 게시물을 일괄 삭제하거나 작성자를 처벌하는 방식은 바람직하지 않다")

@@ -57,14 +57,16 @@ RE_H2 = re.compile(r"^\s*\d{1,2}\.(?!\d)\s*\S")
 RE_H3 = re.compile(r"^\s*\d{1,2}\)\s*\S")
 RE_H4 = re.compile(r"^\s*[①-⑳]")
 RE_SOURCE = re.compile(r"^\s*(사진\s*)?(출처|참고\s*자료|자료)\s*[:：]")
-RE_AUTHOR_TAG = re.compile(r"^\s*<[^>]*작성자\s*[:：][^>]*>\s*$")
+# 작성자 표기: 꺾쇠 안에 '작성자'가 있고 꺾쇠 안 글자가 30자 이내 (멀리 떨어진 < > 는 아님) [U] 2026-11-03
+RE_AUTHOR_TAG = re.compile(r"<(?=[^<>]{0,30}>)[^<>]*작성자[^<>]*>")
+AUTHOR_TAG_MAX_LEN = 60  # 이보다 긴 문단은 본문 속 언급으로 보고 작성자 표기로 보지 않는다
 RE_NAME = re.compile(r"^[가-힣]{2,4}$")
 RE_BYLINE = re.compile(r"HRA\s*\d+\s*기")
 REFLECTION_WORDS = ("느낀 점", "느낀점", "소감", "후기")
 COVER_LABELS = {"소속", "조원", "발표자", "담당교수", "발표일"}
 COVER_TITLE_MIN_PT = 20
 H1_BOX_TEXT_COLOR = "#FFFFFF"  # 템플릿의 1단위 타이틀 칸: 검정 그라데이션 배경 + 흰 글씨
-INTRO_SECTION_WORDS = ("책소개", "저자소개")  # 띄어쓰기 무시. 이 말이 든 1단위 타이틀 아래만 책 소개 표 [U] 2026-11-03
+INTRO_SECTION_WORDS = ("소개",)  # 책 소개·저자 소개·작가 소개 등. 이 말이 든 1단위 타이틀 아래만 책 소개 표 [U] 2026-11-03
 
 
 def _squash(s: str) -> str:
@@ -243,7 +245,7 @@ def classify(doc: "Document") -> None:
 
         if RE_SOURCE.match(text):
             p.role = SOURCE
-        elif RE_AUTHOR_TAG.match(text):
+        elif RE_AUTHOR_TAG.search(text) and len(stripped) <= AUTHOR_TAG_MAX_LEN:
             p.role = AUTHOR_TAG
         elif RE_H2.match(text):
             p.role = H2
