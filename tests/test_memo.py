@@ -58,12 +58,18 @@ def test_text_unchanged_by_memos(sample_hwpx, tmp_path):
     assert strip(before) == strip(after)
 
 
-def test_first_full_sentence_then_short(sample_hwpx, tmp_path):
+def test_memo_keyword_format(sample_hwpx, tmp_path):
+    """메모는 정중한 문장이 아니라 '수정사항' + '- 항목: 이전 → 새' 키워드 형식 [U] 2026-11-03."""
     doc, _, _ = _fixed_with_memos(sample_hwpx, tmp_path)
-    all_lines = [l for _, lines in _memos(doc) for l in lines]
-    full_style = MEMO_TEMPLATES["R01"]["style"].format(old="본문")
-    assert full_style in all_lines
-    assert all_lines.count(COMMON["help"]) == 1
+    memos = [lines for _, lines in _memos(doc) if lines != ["메모 내용입니다."]]
+    assert memos
+    for lines in memos:
+        assert lines[0] in (COMMON["head"], COMMON["table_box"]) or lines[0].startswith("표 안 문단")
+        assert all(line.startswith("- ") for line in lines[1:]), lines
+    body = dict(_memos(doc))["앞에 공백이 있는 본문"]
+    assert "- 스타일: 본문 → 바탕글" in body
+    assert "- 들여쓰기: 5pt → 10pt" in body
+    assert not any("감사드리겠습니다" in line for lines in memos for line in lines)
 
 
 def test_body_memo_lists_every_fix(sample_hwpx, tmp_path):

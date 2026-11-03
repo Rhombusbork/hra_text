@@ -60,16 +60,34 @@ def test_r13_resets_hidden_formatting_but_keeps_links_and_h1(sample_hwpx, tmp_pa
     h1 = _para(doc, "Ⅰ. 첫 장", "H1")
     assert h.char(h1.runs[0].char_id).text_color == "#FFFFFF", "1단위 타이틀 칸 흰 글씨 유지"
     items = {c.extra.get("item") for c in changes if c.rule_id == "R13"}
-    assert {"기울임", "밑줄", "글자 색", "셀 음영"} <= items
+    assert {"기울임", "밑줄", "글자 색"} <= items
+    assert "셀 음영" not in items, "셀 음영은 받은 대로 둔다"
 
 
-def test_r13_removes_normal_table_cell_fill_only(sample_hwpx, tmp_path):
+def test_table_cell_fill_kept(sample_hwpx, tmp_path):
+    """표 안 셀 음영은 받은 대로 둔다 [U] 2026-11-03."""
     doc, _ = _run(sample_hwpx, tmp_path)
     h = doc.header
-    normal = _para(doc, "배경")
-    assert h.fill_color(normal.cell.border_fill_id) is None
+    assert h.fill_color(_para(doc, "배경").cell.border_fill_id) == "#FFFF00"
     h1 = _para(doc, "Ⅰ. 첫 장", "H1")
     assert h.fill_color(h1.cell.border_fill_id).startswith("GRAD:"), "1단위 타이틀 칸 배경 유지"
+
+
+def test_table_cell_align_bold_color_kept_size_fixed(tmp_path):
+    """표 안: 정렬·진하게·글자 색은 받은 대로, 글자 크기·글꼴은 맞춘다 [U] 2026-11-03."""
+    from conftest import SECTION, build_hwpx, p, table
+
+    cell = p("가운데 머리칸", char=1, para=2) + p("색 글자", char=7, para=0)
+    section = SECTION.replace(p("느낀 점 본문입니다.", para=1),
+                              p("느낀 점 본문입니다.", para=1) + p(inner=table([[cell]])))
+    doc, _ = _run(build_hwpx(tmp_path / "s.hwpx", section=section), tmp_path)
+    h = doc.header
+    head = _para(doc, "가운데 머리칸")
+    c = h.char(head.runs[0].char_id)
+    assert (h.para(head.para_id).align, c.bold, c.size_pt) == ("CENTER", True, 10.0)
+    colored = h.char(_para(doc, "색 글자").runs[0].char_id)
+    assert colored.text_color == "#00AA00", "표 안 글자 색은 받은 대로"
+    assert (colored.italic, colored.underline) == (False, False), "기울임·밑줄은 표 안이어도 기본값으로"
 
 
 def test_r09_blank_lines(sample_hwpx, tmp_path):

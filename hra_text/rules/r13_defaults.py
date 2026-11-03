@@ -2,22 +2,20 @@
 
 글자: 기울임·밑줄·취소선·외곽선/그림자/양각/음각·글자 색·글자 음영·장평·자간·위/아래 첨자
 문단: 문단 테두리/배경, 다음 문단과 함께
-표: 일반 표의 셀 배경(흰색은 배경 없음과 같게 봄)
-예외(템플릿 디자인): 1단위 타이틀 칸 흰 글씨·배경, 표지 정보 표 회색 글씨·배경, 목차 표, 책 소개 표 제목 칸 배경,
-하이퍼링크 글자(색·밑줄).
+표: 셀 배경(셀 음영)은 건드리지 않는다, 표 안(TABLE_CELL) 글자 색도 받은 대로 [U] 2026-11-03
+예외(템플릿 디자인): 1단위 타이틀 칸 흰 글씨, 표지 정보 표 회색 글씨, 하이퍼링크 글자(색·밑줄).
 """
 
-from ..classify import TABLE_INTRO, TABLE_NORMAL, table_kind
-from ..hwpx.edit import border_clean, border_no_fill, change_para, change_run, link_runs
+from ..hwpx.edit import border_clean, change_para, change_run, link_runs
 from ..hwpx.ns import NS
 from . import register
 from .base import Rule
 
 KEEP_COLOR = {"H1": {"#FFFFFF"}, "COVER_TABLE": {"#E5E5E5"}}
-NO_FILL = (None, "#FFFFFF")
+KEEP_ANY_COLOR = {"TABLE_CELL"}  # 표 안 글자 색은 받은 대로 [U] 2026-11-03
 
 
-def _char_fixes(el, *, keep_color: set, is_link: bool) -> list[tuple[str, callable]]:
+def _char_fixes(el, *, keep_color: set, is_link: bool, keep_any_color: bool = False) -> list[tuple[str, callable]]:
     """(항목 이름, mutate) 목록 — 기본값과 다른 것만."""
     fixes = []
     if el.find("hh:italic", NS) is not None:
@@ -36,7 +34,7 @@ def _char_fixes(el, *, keep_color: set, is_link: bool) -> list[tuple[str, callab
         if el.find(f"hh:{tag}", NS) is not None:
             fixes.append((name, lambda e, tag=tag: e.remove(e.find(f"hh:{tag}", NS))))
     color = el.get("textColor", "#000000").upper()
-    if color != "#000000" and color not in keep_color and not is_link:
+    if color != "#000000" and color not in keep_color and not is_link and not keep_any_color:
         fixes.append(("글자 색", lambda e: e.set("textColor", "#000000")))
     shade = el.get("shadeColor", "none").upper()
     if shade not in ("NONE", "#FFFFFF"):
@@ -61,9 +59,10 @@ class R13Defaults(Rule):
         for p in self.formatted(doc):
             links = link_runs(p.el)
             keep = KEEP_COLOR.get(p.role, set())
+            keep_any_color = p.role in KEEP_ANY_COLOR
             for r in self.text_runs(p):
                 for name, mutate in _char_fixes(h.char_element(r.char_id), keep_color=keep,
-                                                is_link=r.el in links):
+                                                is_link=r.el in links, keep_any_color=keep_any_color):
                     if change_run(doc, p, r, mutate):
                         changes.append(self.change(p, "default", name, "기본값", run=r, item=name))
             # 문단 테두리/배경, 다음 문단과 함께
@@ -74,34 +73,4 @@ class R13Defaults(Rule):
                     changes.append(self.change(p, "default", "문단 테두리·배경", "기본값", item="문단 테두리·배경"))
             if ps.keep_with_next and change_para(doc, p, lambda e: e.find("hh:breakSetting", NS).set("keepWithNext", "0")):
                 changes.append(self.change(p, "default", "다음 문단과 함께", "기본값", item="다음 문단과 함께"))
-        changes += self._cell_fills(doc)
         return changes
-
-    def _cell_fills(self, doc):
-        h = doc.header
-        changes, seen = [], set()
-        first_para = {}
-        for p in doc.paras:
-            if p.cell is not None:
-                first_para.setdefault(id(p.cell.tc), p)
-        for p in doc.paras:
-            for tbl in p.tables:
-                kind = table_kind(doc, tbl)
-                if kind not in (TABLE_NORMAL, TABLE_INTRO) or id(tbl) in seen:
-                    continue
-                seen.add(id(tbl))
-                for tc in tbl.iterfind("hp:tr/hp:tc", NS):
-                    row = int(tc.find("hp:cellAddr", NS).get("rowAddr"))
-                    if kind == TABLE_INTRO and row == 0:
-                        continue  # 책 소개 표 제목 칸 배경은 템플릿 디자인
-                    bf = tc.get("borderFillIDRef")
-                    if h.fill_color(bf) in NO_FILL:
-                        continue
-                    old = h.fill_color(bf)
-                    tc.set("borderFillIDRef", h.derive_border_fill(bf, border_no_fill))
-                    anchor = first_para.get(id(tc))
-                    if anchor is not None:
-                        doc.touched.add(anchor.el)
-                        changes.append(self.change(anchor, "default", f"셀 음영({old})", "기본값", item="셀 음영"))
-        return changes
-

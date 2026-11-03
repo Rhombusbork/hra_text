@@ -1,7 +1,7 @@
 """R16. 쪽 번호 제거 (쪽 번호 매기기 hp:pageNum, 머리말/꼬리말의 쪽 번호 자동 번호).
 pos="NONE"(쪽 번호 없음 설정)은 보이지 않으므로 그대로 둔다."""
 
-from ..hwpx.ns import NS, hp
+from ..hwpx.ns import hp
 from . import register
 from .base import Rule
 

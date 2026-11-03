@@ -4,8 +4,7 @@
 - 표: 표 1개당 메모 1개 (표 안 첫 글자 문단에 단다)
 - 빈 줄·그림만 있는 문단: 같은 영역의 다음 글자 문단 메모에 합친다
 - 바로 앞 메모와 고친 내용이 같으면 새 메모를 달지 않고 앞 메모에 "아래 … n개도 같은 문제" 한 줄
-- 같은 (규칙, 항목)의 첫 메모는 템플릿 전체 문장, 그 뒤로는 짧은 형태
-- 문서의 첫 메모 끝에 도움 문구 1회
+- 문구는 키워드 형식: '수정사항' + '- 항목: 이전 → 새' (FORMAT_RULES §3)
 """
 
 from __future__ import annotations
@@ -25,7 +24,6 @@ from .rules.memo_templates import COMMON, MEMO_TEMPLATES
 
 ALIGN_NAMES = {"JUSTIFY": "양쪽", "LEFT": "왼쪽", "RIGHT": "오른쪽", "CENTER": "가운데",
                "DISTRIBUTE": "배분", "DISTRIBUTE_SPACE": "나눔"}
-GAP_POS = {"prev": "위", "next": "아래"}
 PT_KEYS = {"size", "intent", "left", "right", "prev", "next"}
 KEY_ORDER = ("guide", "page_num", "leading_space", "spacing", "spacing_check", "treatAsChar", "style", "font", "size", "bold",
              "default", "align", "intent", "left", "right", "prev", "next", "line", "blank_lines",
@@ -59,9 +57,6 @@ def _value(key: str, v) -> str:
         return f"{v}칸" if v else "없음"
     return str(v)
 
-
-def _num(v) -> str:
-    return f"{v:g}" if isinstance(v, float) else str(v)
 
 
 # ---------------------------------------------------------------- 대상 정하기
@@ -134,93 +129,57 @@ def plan(doc: Document, changes: list[Change]) -> list[MemoPlan]:
 
 # ---------------------------------------------------------------- 문구 만들기
 class Writer:
-    def __init__(self):
-        self.seen: set[tuple[str, str]] = set()
-        self.first_memo = True
+    """키워드 형식 메모 (FORMAT_RULES §3): 첫 줄 '수정사항'/'표 안 문단 n개 수정' + '- 항목: 이전 → 새' 줄들."""
 
-    def _once(self, rule_id: str, variant: str) -> bool:
-        key = (rule_id, variant)
-        if key in self.seen:
-            return False
-        self.seen.add(key)
-        return True
-
-    def _short(self, c: Change) -> str:
-        return COMMON["short"].format(item=KEY_NAMES.get(c.key, c.key),
-                                      old=_value(c.key, c.old), new=_value(c.key, c.new))
+    def _item(self, c: Change, name: str | None = None) -> str:
+        return COMMON["item"].format(item=name or KEY_NAMES.get(c.key, c.key),
+                                     old=_value(c.key, c.old), new=_value(c.key, c.new))
 
     def lines(self, mp: MemoPlan, same_below: int = 0) -> list[str]:
-        out: list[str] = []
         if mp.table_paras:
-            out.append(COMMON["table_head"].format(n=len(mp.table_paras)))
-        # 같은 내용 변경은 하나로 (표 안 여러 칸 등)
+            head = COMMON["table_head"].format(n=len(mp.table_paras))
+        elif mp.kind == "table":
+            head = COMMON["table_box"]  # 표를 담은 문단(표 자체)만 고친 경우
+        else:
+            head = COMMON["head"]
+        out = [head]
         uniq: dict[tuple, Change] = {}
         for c in mp.changes:
             uniq.setdefault((c.rule_id, c.key, repr(c.old), repr(c.new), c.extra.get("kind")), c)
         ordered = sorted(uniq.values(), key=lambda c: (
             ORDER.index(c.rule_id), KEY_ORDER.index(c.key) if c.key in KEY_ORDER else 99))
-        r08 = [c for c in ordered if c.rule_id == "R08"]
         for c in ordered:
-            if c.rule_id == "R08":
-                continue
             out.append(self._line(c))
             if c.rule_id == "R07" and c.note:
-                out.append(MEMO_TEMPLATES["R07"]["check"])
-        if r08:
-            if self._once("R08", "source"):
-                details = ", ".join(f"{KEY_NAMES.get(c.key, c.key)} {_value(c.key, c.old)}→{_value(c.key, c.new)}"
-                                    for c in r08)
-                out.append(MEMO_TEMPLATES["R08"]["source"].format(details=details))
-            else:
-                out += [self._short(c) for c in r08]
+                out.append(MEMO_TEMPLATES["R07"]["check"].format(kind=c.extra.get("kind", "개체")))
         if same_below:
-            out.append(COMMON["same_below"].format(what="표" if mp.kind == "table" else "문단",
-                                                   n=same_below))
+            out.append(COMMON["same_below"].format(what="표" if mp.kind == "table" else "문단", n=same_below))
         if mp.empty_paras:
             out.append(COMMON["empty_lines"].format(n=len(mp.empty_paras)))
-        if out and self.first_memo:
-            out.append(COMMON["help"])
-            self.first_memo = False
-        return out
+        return out if len(out) > 1 else []
 
     def _line(self, c: Change) -> str:
         t = MEMO_TEMPLATES
-        # 매번 전체 문장 (내용이 그때그때 다름)
         if c.rule_id == "R15":
             return t["R15"]["guide"].format(text=c.old)
         if c.rule_id == "R16":
             return t["R16"]["page_num"]
         if c.rule_id == "R14":
             return t["R14"][c.key].format(toc=c.old, h1=c.new)
+        if c.rule_id == "R13":
+            return t["R13"]["default"].format(item=c.extra.get("item", c.old))
         if c.rule_id == "R11":
             if c.key == "spacing_check":
                 return t["R11"]["spacing_check"].format(text=c.old)
             return t["R11"]["spacing"].format(old=c.old, new=c.new)
-        if c.rule_id == "R13":
-            return t["R13"]["default"].format(item=c.extra.get("item", c.old))
+        if c.rule_id == "R10":
+            return t["R10"]["leading_space"].format(old=c.old)
         if c.rule_id == "R09":
             variant = c.extra.get("variant", "too_many")
-            return t["R09"][variant] if self._once("R09", variant) else self._short(c)
-        if c.rule_id == "R03" and c.key == "bold":
-            variant = "bold_on" if c.new else "bold_off"
-            return t["R03"][variant] if self._once("R03", variant) else self._short(c)
-        if c.rule_id == "R06" and c.key in GAP_POS:
-            if self._once("R06", c.key):
-                return t["R06"]["gap"].format(pos=GAP_POS[c.key], old=_num(c.old))
-            return self._short(c)
+            return t["R09"]["blank"].format(old=c.old, new=c.new, reason=t["R09"].get(variant, ""))
         if c.rule_id == "R07":
-            if self._once("R07", c.extra.get("kind", "")):
-                return t["R07"]["object"].format(kind=c.extra.get("kind", "개체"))
-            return self._short(c)
-        if c.rule_id == "R04":
-            if self._once("R04", f"align_{c.new}"):  # 바뀐 정렬마다 첫 문장은 전체로
-                line = t["R04"]["align"].format(old=_value("align", c.old), new=_value("align", c.new))
-                return line + (" " + t["R04"]["justify_hint"] if c.new == "JUSTIFY" else "")
-            return self._short(c)
-        templates = t.get(c.rule_id, {})
-        if c.key in templates and self._once(c.rule_id, c.key):
-            return templates[c.key].format(old=_num(c.old), new=_num(c.new))
-        return self._short(c)
+            return self._item(c, f"글자처럼 취급({c.extra.get('kind', '개체')})")
+        return self._item(c)
 
 
 def signature(mp: MemoPlan):

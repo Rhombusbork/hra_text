@@ -24,7 +24,7 @@ class R14Toc(Rule):
             return []
         # 이미 목차 지적 메모가 달린 문서(이 프로그램 결과를 다시 넣은 경우)는 또 지적하지 않는다
         toc_table = toc[0].top_cell.tbl if toc[0].top_cell is not None else toc[0].el
-        if any("목차" in m and "확인 부탁드립니다" in m for m in memo_texts(toc_table)):
+        if any("확인 필요: 목차" in m for m in memo_texts(toc_table)):
             return []
         changes = []
         for t, h in zip(toc, h1):

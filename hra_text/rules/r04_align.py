@@ -10,7 +10,8 @@ CENTER_ROLES = {"COVER_TITLE", "TOC_TITLE", "TOC_ITEM", "COVER_TABLE", "INTRO_TI
 RIGHT_ROLES = {"AUTHOR_TAG", "READING_BYLINE"}
 # SOURCE 는 R08, OBJECT(표 위치)는 받은 대로 [U], EMPTY 는 정렬이 보이지 않으므로 그대로
 # INTRO_BODY(책 소개 내용 칸)는 정렬·들여쓰기를 받은 대로 [U] 2026-10-29
-NOT_HANDLED = {"SOURCE", "OBJECT", "EMPTY", "INTRO_BODY"}
+# TABLE_CELL(일반 표 안 글자) 정렬도 받은 대로 [U] 2026-11-03
+NOT_HANDLED = {"SOURCE", "OBJECT", "EMPTY", "INTRO_BODY", "TABLE_CELL"}
 
 
 def expected_align(doc, para) -> str:
