@@ -5,6 +5,9 @@ from ..hwpx.edit import change_run, char_bold, char_height
 from . import register
 from .base import Rule
 
+# 이미 8pt 인 글자는 크기를 바꾸지 않는다 (참고자료·출처 목록 등) [U] 2026-11-04
+KEEP_SIZE_PT = 8.0
+
 # 역할: (크기 pt, 진하게) — None 이면 받은 대로
 EXPECTED = {
     "CATEGORY": (12, True),
@@ -43,7 +46,8 @@ class R03SizeBold(Rule):
             size, bold = EXPECTED[p.role]
             for r in self.text_runs(p):
                 c = h.char(r.char_id)
-                if size is not None and c.size_pt != size and change_run(doc, p, r, char_height(size)):
+                if (size is not None and c.size_pt != size and c.size_pt != KEEP_SIZE_PT
+                        and change_run(doc, p, r, char_height(size))):
                     changes.append(self.change(p, "size", c.size_pt, size, run=r))
                 if bold is not None and c.bold != bold and change_run(doc, p, r, char_bold(bold)):
                     changes.append(self.change(p, "bold", c.bold, bold, run=r))

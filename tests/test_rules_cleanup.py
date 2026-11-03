@@ -152,3 +152,16 @@ def test_small_right_paragraph_untouched(tmp_path):
     ps = doc.header.para(q.para_id)
     assert (ps.align, ps.margins_pt["intent"], ps.line_spacing[1]) == ("RIGHT", 10.0, 110)
     assert doc.header.style_name(q.style_id) == "본문", "스타일도 그대로"
+
+
+def test_8pt_text_keeps_size(tmp_path):
+    """이미 8pt인 글자는 크기를 바꾸지 않는다 (정렬 등 다른 서식은 규칙대로) [U] 2026-11-04."""
+    from conftest import SECTION, build_hwpx, p
+
+    small = p("참고자료 목록 가짜 줄", char=5, para=3, style=1)  # 8pt, 왼쪽 정렬, 본문 스타일
+    section = SECTION.replace(p("느낀 점 본문입니다.", para=1), p("느낀 점 본문입니다.", para=1) + small)
+    doc, _ = _run(build_hwpx(tmp_path / "s.hwpx", section=section), tmp_path)
+    q = _para(doc, "참고자료 목록 가짜 줄")
+    assert doc.header.char(q.runs[0].char_id).size_pt == 8.0
+    assert doc.header.para(q.para_id).align == "JUSTIFY"
+    assert doc.header.style_name(q.style_id) == "바탕글"
