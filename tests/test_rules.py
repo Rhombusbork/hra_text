@@ -73,10 +73,11 @@ def test_source_and_author_tag(sample_hwpx, tmp_path):
     assert (tag["sizes"], tag["align"]) == ({8.0}, "RIGHT")
 
 
-def test_reflection_name_stays_bold(sample_hwpx, tmp_path):
+def test_reflection_name_size_and_bold_kept(sample_hwpx, tmp_path):
+    """느낀 점 이름 줄은 크기·진하게를 받은 대로 둔다 [U] 2026-11-03 (합성 문서: 12pt 진하게)."""
     doc, _ = _fixed(sample_hwpx, tmp_path)
     f = _fmt(doc, _para(doc, "홍길동", "REFLECTION_NAME"))
-    assert (f["sizes"], f["bold"], f["intent"]) == ({10.0}, {True}, 10.0)
+    assert (f["sizes"], f["bold"]) == ({12.0}, {True})
 
 
 def test_object_paragraph_alignment_kept(sample_hwpx, tmp_path):

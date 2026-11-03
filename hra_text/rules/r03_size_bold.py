@@ -5,7 +5,7 @@ from ..hwpx.edit import change_run, char_bold, char_height
 from . import register
 from .base import Rule
 
-# 역할: (크기 pt, 진하게 — None 이면 받은 대로)
+# 역할: (크기 pt, 진하게) — None 이면 받은 대로
 EXPECTED = {
     "CATEGORY": (12, True),
     "COVER_TITLE": (32, True),
@@ -21,7 +21,7 @@ EXPECTED = {
     "H2": (12, True),
     "H3": (11, True),
     "H4": (10, False),
-    "REFLECTION_NAME": (10, True),
+    "REFLECTION_NAME": (None, None),  # 느낀 점 이름 줄은 받은 대로 [U] 2026-11-03
     "BODY": (10, False),
     "REFLECTION": (10, False),
     "TABLE_CELL": (10, None),  # 표 안 진하게는 받은 대로 [U] 2026-11-03
@@ -43,7 +43,7 @@ class R03SizeBold(Rule):
             size, bold = EXPECTED[p.role]
             for r in self.text_runs(p):
                 c = h.char(r.char_id)
-                if c.size_pt != size and change_run(doc, p, r, char_height(size)):
+                if size is not None and c.size_pt != size and change_run(doc, p, r, char_height(size)):
                     changes.append(self.change(p, "size", c.size_pt, size, run=r))
                 if bold is not None and c.bold != bold and change_run(doc, p, r, char_bold(bold)):
                     changes.append(self.change(p, "bold", c.bold, bold, run=r))
