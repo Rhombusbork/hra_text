@@ -37,11 +37,13 @@ INTRO_BODY = "INTRO_BODY"
 READING_TITLE = "READING_TITLE"
 READING_BYLINE = "READING_BYLINE"
 SKIP = "SKIP"
+KEEP = "KEEP"  # 이미 8pt·오른쪽 정렬인 문단: 어떤 규칙도 손대지 않음 [U] 2026-11-03
+KEEP_SIZE_PT = 8.0
 
 ROLES = (
     GUIDE, CATEGORY, COVER_TITLE, TOC_TITLE, TOC_ITEM, COVER_TABLE, H1, H2, H3, H4, BODY,
     SOURCE, AUTHOR_TAG, TABLE_CELL, OBJECT, EMPTY, REFLECTION_NAME, REFLECTION,
-    INTRO_TITLE, INTRO_IMAGE, INTRO_BODY, READING_TITLE, READING_BYLINE, SKIP,
+    INTRO_TITLE, INTRO_IMAGE, INTRO_BODY, READING_TITLE, READING_BYLINE, SKIP, KEEP,
 )
 
 # 표 종류
@@ -187,6 +189,12 @@ def classify(doc: "Document") -> None:
 
         if visible_runs and all(is_guide_run(doc, r.char_id) for r in visible_runs):
             p.role = GUIDE
+            continue
+
+        # 이미 8pt·오른쪽 정렬(출처 모음 등)이면 그대로 둔다
+        if (visible_runs and doc.header.para(p.para_id).align == "RIGHT"
+                and all(doc.header.char(r.char_id).size_pt == KEEP_SIZE_PT for r in visible_runs)):
+            p.role = KEEP
             continue
 
         # 표 안

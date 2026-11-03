@@ -16,7 +16,7 @@ ORDER = ("R15", "R16", "R10", "R11", "R07", "R01", "R02", "R03", "R13",
          "R04", "R05", "R06", "R08", "R09", "R14")
 
 # 서식 규칙이 다루지 않는 역할 (지울 대상이거나 처리 밖)
-NOT_FORMATTED = {"SKIP", "GUIDE"}
+NOT_FORMATTED = {"SKIP", "GUIDE", "KEEP"}  # KEEP: 이미 8pt·오른쪽 정렬 [U] 2026-11-03
 
 
 class Rule:

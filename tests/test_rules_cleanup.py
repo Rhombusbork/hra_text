@@ -135,3 +135,20 @@ def test_r11_dict_file_is_well_formed():
     pairs = load_dict()
     assert pairs and all(w.replace(" ", "") == r.replace(" ", "") for w, r in pairs), \
         "사전은 띄어쓰기만 바꿔야 한다 (글자가 달라지면 안 됨)"
+
+
+def test_small_right_paragraph_untouched(tmp_path):
+    """이미 8pt·오른쪽 정렬인 문단은 어떤 수정도 하지 않는다 [U] 2026-11-03."""
+    from conftest import HEADER, SECTION, _para as make_para, build_hwpx, p
+
+    header = HEADER.replace('<hh:paraProperties itemCnt="4">', '<hh:paraProperties itemCnt="5">').replace(
+        "</hh:paraProperties>", make_para(4, align="RIGHT", intent=10, nxt=4, line=110) + "</hh:paraProperties>")
+    right8 = p("출처 모음 : 가짜 자료1", char=5, para=4, style=1)
+    section = SECTION.replace(p("느낀 점 본문입니다.", para=1), p("느낀 점 본문입니다.", para=1) + right8)
+    doc, changes = _run(build_hwpx(tmp_path / "s.hwpx", header=header, section=section), tmp_path)
+    q = _para(doc, "출처 모음 : 가짜 자료1")
+    assert q.role == "KEEP"
+    assert not [c for c in changes if c.text.strip() == "출처 모음 : 가짜 자료1"]
+    ps = doc.header.para(q.para_id)
+    assert (ps.align, ps.margins_pt["intent"], ps.line_spacing[1]) == ("RIGHT", 10.0, 110)
+    assert doc.header.style_name(q.style_id) == "본문", "스타일도 그대로"

@@ -18,7 +18,7 @@ PATTERNS = [
     (re.compile(r"(\S+학과)(\d+학년)"), r"\1 \2"),
 ]
 RE_LONG = re.compile(r"[가-힣]{14,}")
-NOT_CHECKED = {"SKIP", "GUIDE"}
+NOT_CHECKED = {"SKIP", "GUIDE", "KEEP"}
 
 
 def load_dict(path: Path = DICT_PATH) -> list[tuple[str, str]]:

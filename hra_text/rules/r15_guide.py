@@ -46,7 +46,7 @@ class R15Guide(Rule):
     def apply(self, doc):
         changes, removed_any = [], False
         for p in doc.paras:
-            if p.container not in ("body", "cell"):
+            if p.container not in ("body", "cell") or p.role == "KEEP":
                 continue
             red = [r for r in p.runs if r.text.strip() and doc.header.char(r.char_id).text_color == GUIDE_COLOR]
             if not red:
