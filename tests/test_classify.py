@@ -43,7 +43,7 @@ def test_tab_text_is_read(sample_hwpx):
 
 # ---- 로컬 실제 샘플 (커밋 안 됨): 사용자 확인을 거친 역할 개수 회귀 ----
 FEEDBACK = local_samples("*경영서*_피드백.hwpx")
-CLASSIC = local_samples("*고전*.hwp")
+CLASSIC = local_samples("*OOO-고전*.hwp")  # 고전 템플릿만 (실제 제출본 제외)
 
 
 @pytest.mark.skipif(not FEEDBACK, reason="로컬 샘플 없음")
@@ -78,3 +78,14 @@ def test_essay_is_reading_format(src, tmp_path):
     assert (c["READING_TITLE"], c["READING_BYLINE"]) == (1, 1)
     changes = run_rules(doc)
     assert all(ch.rule_id == "R10" for ch in changes), "에세이는 (문단 앞 공백 외) 고칠 게 없어야 한다"
+
+
+def test_photo_table_outside_intro_section_is_normal_table(tmp_path):
+    """사진이 든 2×2 병합 표라도 '책 소개/저자 소개' 아래가 아니면 일반 표 (기업실무 사진 표)."""
+    from conftest import PIC, SECTION, build_hwpx, p, table
+
+    photo = p(inner=table([[p("③매장 분위기")], [p(inner=PIC.format(ref="image1")), p("설명")]], col_span_first=2))
+    doc = Document.open(build_hwpx(tmp_path / "s.hwpx", section=SECTION.replace(
+        p("느낀 점 본문입니다.", para=1), p("느낀 점 본문입니다.", para=1) + photo)))
+    roles = {q.text.strip(): q.role for q in doc.paras if q.text.strip()}
+    assert roles["③매장 분위기"] == "TABLE_CELL"

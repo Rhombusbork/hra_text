@@ -64,7 +64,7 @@ REFLECTION_WORDS = ("느낀 점", "느낀점", "소감", "후기")
 COVER_LABELS = {"소속", "조원", "발표자", "담당교수", "발표일"}
 COVER_TITLE_MIN_PT = 20
 H1_BOX_TEXT_COLOR = "#FFFFFF"  # 템플릿의 1단위 타이틀 칸: 검정 그라데이션 배경 + 흰 글씨
-INTRO_SECTION_WORDS = ("소개",)  # Ⅰ. 책 소개 / Ⅱ. 저자 소개
+INTRO_SECTION_WORDS = ("책소개", "저자소개")  # 띄어쓰기 무시. 이 말이 든 1단위 타이틀 아래만 책 소개 표 [U] 2026-11-03
 
 
 def _squash(s: str) -> str:
@@ -111,7 +111,7 @@ def _is_intro_table(tbl, has_pic: bool, in_intro_section: bool) -> bool:
     first = tbl.find("{http://www.hancom.co.kr/hwpml/2011/paragraph}tr/{http://www.hancom.co.kr/hwpml/2011/paragraph}tc")
     if first is None or _tc_span(first)[0] != 2:
         return False
-    return has_pic or in_intro_section
+    return in_intro_section  # 사진 유무로는 판단하지 않는다 (기업실무 사진 표 오인식 방지)
 
 
 def is_guide_run(doc: "Document", char_id: str) -> bool:
@@ -156,7 +156,7 @@ def classify(doc: "Document") -> None:
         if _top_index(p) in h1_text_by_top:
             section_h1 = h1_text_by_top[_top_index(p)]
         if p.cell is None:
-            in_intro = any(w in section_h1 for w in INTRO_SECTION_WORDS)
+            in_intro = any(w in _squash(section_h1) for w in INTRO_SECTION_WORDS)
             for tbl in p.tables:
                 if _is_intro_table(tbl, id(tbl) in pic_tables, in_intro):
                     intro_tables.add(id(tbl))
