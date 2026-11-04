@@ -24,9 +24,8 @@ EXPECTED = {
     "H2": (12, True),
     "H3": (11, True),
     "H4": (10, False),
-    "REFLECTION_NAME": (11, True),  # 느낀 점 이름 줄 11pt 진하게 [U] 2026-11-03
+    "REFLECTION_NAME": (None, None),  # 이름 줄은 받은 대로 [U] 2026-11-04
     "BODY": (10, False),
-    "REFLECTION": (10, False),
     "TABLE_CELL": (10, None),  # 표 안 진하게는 받은 대로 [U] 2026-11-03
     "AUTHOR_TAG": (None, None),  # 작성자 표기는 받은 대로 [U] 2026-11-03
 }

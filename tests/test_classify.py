@@ -28,7 +28,7 @@ def test_synthetic_roles(sample_hwpx):
     assert roles["<1장 작성자: 홍길동>"] == "AUTHOR_TAG"
     assert roles["배경"] == "TABLE_CELL"
     assert roles["홍길동"] == "REFLECTION_NAME"
-    assert roles["느낀 점 본문입니다."] == "REFLECTION"
+    assert roles["느낀 점 본문입니다."] == "BODY"
     assert roles["메모 내용입니다."] == "SKIP"
     h1 = [t for t, r in _roles(doc) if r == "H1"]
     assert h1 == ["Ⅰ. 첫 장", "Ⅱ. 느낀 점"]
@@ -103,3 +103,15 @@ def test_author_tag_detection():
     assert not is_tag("<듀얼 브레인>은 필독서다. 작성자는 이선 몰릭이다 >")  # 작성자가 꺾쇠 밖
     assert not is_tag("<" + "가" * 31 + " 작성자: 홍길동>")  # 꺾쇠 안이 30자를 넘음
     assert not is_tag("익명이라는 이유만으로 게시물을 일괄 삭제하거나 작성자를 처벌하는 방식은 바람직하지 않다")
+
+
+def test_name_line_needs_name_written_in_document(tmp_path):
+    """이름 줄은 위치가 아니라 문서에 적힌 이름(표지 표 등)과 같은지로 판별 [U] 2026-11-04."""
+    from conftest import SECTION, build_hwpx, p
+
+    extra = p("홍길동", char=1, para=1) + p("들어가며", char=1, para=1)  # 느낀 점 영역 밖
+    section = SECTION.replace(p("1. 둘째 단위", char=1, para=1), extra + p("1. 둘째 단위", char=1, para=1))
+    doc = Document.open(build_hwpx(tmp_path / "n.hwpx", section=section))
+    roles = [(q.text.strip(), q.role) for q in doc.paras
+             if q.cell is None and q.text.strip() in ("홍길동", "들어가며")]
+    assert roles == [("홍길동", "REFLECTION_NAME"), ("들어가며", "BODY"), ("홍길동", "REFLECTION_NAME")]

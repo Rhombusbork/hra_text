@@ -4,7 +4,7 @@ from ..hwpx.ns import NS, hp
 from . import register
 from .base import Rule
 
-TARGET_ROLES = {"H1", "H2", "H3", "H4", "BODY", "REFLECTION_NAME", "REFLECTION"}  # 작성자 표기는 받은 대로
+TARGET_ROLES = {"H1", "H2", "H3", "H4", "BODY"}  # 작성자 표기·이름 줄은 받은 대로
 _BLANK_CHILDREN = (hp("tab"), hp("nbSpace"), hp("fwSpace"))
 _SPACES = " \t　 "
 

@@ -73,11 +73,21 @@ def test_source_and_author_tag(sample_hwpx, tmp_path):
     assert (tag["sizes"], tag["align"]) == ({8.0}, "CENTER"), "작성자 표기는 받은 대로 (합성 문서: 8pt 가운데)"
 
 
-def test_reflection_name_11pt_bold(sample_hwpx, tmp_path):
-    """느낀 점 이름 줄은 11pt 진하게 [U] 2026-11-03 (합성 문서: 12pt 진하게 → 11pt)."""
-    doc, _ = _fixed(sample_hwpx, tmp_path)
+def test_name_line_kept_as_is(sample_hwpx, tmp_path):
+    """이름 줄은 크기·진하게·정렬·들여쓰기를 받은 대로 [U] 2026-11-04 (합성 문서: 12pt 진하게, 들여쓰기 10pt)."""
+    doc, changes = _fixed(sample_hwpx, tmp_path)
     f = _fmt(doc, _para(doc, "홍길동", "REFLECTION_NAME"))
-    assert (f["sizes"], f["bold"]) == ({11.0}, {True})
+    assert (f["sizes"], f["bold"], f["intent"]) == ({12.0}, {True}, 10.0)
+    assert not [c for c in changes if c.role == "REFLECTION_NAME" and c.key in ("size", "bold", "align", "intent")]
+
+
+def test_three_digit_heading_numbers():
+    """2·3단위 번호는 세 자리까지 [U] 2026-11-04."""
+    from hra_text.classify import RE_H2, RE_H3
+
+    assert all(RE_H2.match(t) for t in ("1. 제목", "01. 제목", "068. 제목"))
+    assert all(RE_H3.match(t) for t in ("1) 제목", "001) 제목", "100) 제목"))
+    assert not RE_H2.match("1.5 제목") and not RE_H2.match("1000. 제목")
 
 
 def test_object_paragraph_alignment_kept(sample_hwpx, tmp_path):

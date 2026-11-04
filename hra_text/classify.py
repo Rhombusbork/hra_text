@@ -30,7 +30,6 @@ TABLE_CELL = "TABLE_CELL"
 OBJECT = "OBJECT"
 EMPTY = "EMPTY"
 REFLECTION_NAME = "REFLECTION_NAME"
-REFLECTION = "REFLECTION"
 INTRO_TITLE = "INTRO_TITLE"
 INTRO_IMAGE = "INTRO_IMAGE"
 INTRO_BODY = "INTRO_BODY"
@@ -42,7 +41,7 @@ KEEP_SIZE_PT = 8.0
 
 ROLES = (
     GUIDE, CATEGORY, COVER_TITLE, TOC_TITLE, TOC_ITEM, COVER_TABLE, H1, H2, H3, H4, BODY,
-    SOURCE, AUTHOR_TAG, TABLE_CELL, OBJECT, EMPTY, REFLECTION_NAME, REFLECTION,
+    SOURCE, AUTHOR_TAG, TABLE_CELL, OBJECT, EMPTY, REFLECTION_NAME,
     INTRO_TITLE, INTRO_IMAGE, INTRO_BODY, READING_TITLE, READING_BYLINE, SKIP, KEEP,
 )
 
@@ -55,8 +54,8 @@ TABLE_NORMAL = "NORMAL"
 
 GUIDE_COLOR = "#FF0000"
 RE_H1 = re.compile(r"^\s*[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ]\s*\.")
-RE_H2 = re.compile(r"^\s*\d{1,2}\.(?!\d)\s*\S")
-RE_H3 = re.compile(r"^\s*\d{1,2}\)\s*\S")
+RE_H2 = re.compile(r"^\s*\d{1,3}\.(?!\d)\s*\S")  # 세 자리(068.)까지 [U] 2026-11-04
+RE_H3 = re.compile(r"^\s*\d{1,3}\)\s*\S")
 RE_H4 = re.compile(r"^\s*[①-⑳]")
 RE_SOURCE = re.compile(r"^\s*(사진\s*)?(출처|참고\s*자료|자료)\s*[:：]")
 # 작성자 표기: 꺾쇠 안에 '작성자'가 있고 꺾쇠 안 글자가 30자 이내 (멀리 떨어진 < > 는 아님) [U] 2026-11-03
@@ -64,7 +63,9 @@ RE_AUTHOR_TAG = re.compile(r"<(?=[^<>]{0,30}>)[^<>]*작성자[^<>]*>")
 AUTHOR_TAG_MAX_LEN = 60  # 이보다 긴 문단은 본문 속 언급으로 보고 작성자 표기로 보지 않는다
 RE_NAME = re.compile(r"^[가-힣]{2,4}$")
 RE_BYLINE = re.compile(r"HRA\s*\d+\s*기")
-REFLECTION_WORDS = ("느낀 점", "느낀점", "소감", "후기")
+# 이름 줄: 같은 문서(표지 표·작성자 줄·작성자 표기)에 적힌 이름과 같은 한글 2~4자 줄 [U] 2026-11-04
+RE_NAME_TOKEN = re.compile(r"[가-힣]{2,4}")
+NAME_STOPWORDS = {"작성자"}
 COVER_LABELS = {"소속", "조원", "발표자", "담당교수", "발표일"}
 COVER_TITLE_MIN_PT = 20
 H1_BOX_TEXT_COLOR = "#FFFFFF"  # 템플릿의 1단위 타이틀 칸: 검정 그라데이션 배경 + 흰 글씨
@@ -118,6 +119,16 @@ def _is_intro_table(tbl, has_pic: bool, in_intro_section: bool) -> bool:
     return in_intro_section  # 사진 유무로는 판단하지 않는다 (기업실무 사진 표 오인식 방지)
 
 
+def _document_names(paras, cover_tables: set[int]) -> set[str]:
+    """문서에 적힌 사람 이름 후보: 표지 정보 표 칸, 'HRA 20기 …' 작성자 줄, '<… 작성자: …>' 표기의 한글 2~4자."""
+    names: set[str] = set()
+    for p in paras:
+        in_cover = p.top_cell is not None and id(p.top_cell.tbl) in cover_tables
+        if in_cover or RE_BYLINE.search(p.text) or RE_AUTHOR_TAG.search(p.text):
+            names |= set(RE_NAME_TOKEN.findall(p.text))
+    return names - COVER_LABELS - NAME_STOPWORDS
+
+
 def is_guide_run(doc: "Document", char_id: str) -> bool:
     return doc.header.char(char_id).text_color == GUIDE_COLOR
 
@@ -130,6 +141,8 @@ def classify(doc: "Document") -> None:
         t for t, ts in table_texts.items()
         if len({_squash(x) for x in ts} & COVER_LABELS) >= 2
     }
+
+    names = _document_names(paras, cover_tables)
 
     def is_h1(p: "Para") -> bool:
         if p.cell is not None and _is_h1_box(doc, p):
@@ -165,7 +178,6 @@ def classify(doc: "Document") -> None:
                 if _is_intro_table(tbl, id(tbl) in pic_tables, in_intro):
                     intro_tables.add(id(tbl))
 
-    current_h1 = ""
     current_top = -1
     seen_category = 0
     reading_part = False  # 고전 '함께읽기용' 부분 (두 번째 ■ 이후)
@@ -176,7 +188,6 @@ def classify(doc: "Document") -> None:
         if top != current_top:
             current_top = top
             if top in h1_text_by_top:
-                current_h1 = h1_text_by_top[top]
                 reading_part = False
 
         if p.container not in ("body", "cell"):
@@ -261,8 +272,8 @@ def classify(doc: "Document") -> None:
             p.role = H3
         elif RE_H4.match(text):
             p.role = H4
-        elif any(w in current_h1 for w in REFLECTION_WORDS):
-            p.role = REFLECTION_NAME if RE_NAME.match(stripped) else REFLECTION
+        elif RE_NAME.match(stripped) and stripped in names:
+            p.role = REFLECTION_NAME
         else:
             p.role = BODY
 

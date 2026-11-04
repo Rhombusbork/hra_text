@@ -5,9 +5,9 @@ from ..hwpx.edit import change_para, para_margins
 from . import register
 from .base import Rule
 
-INDENT_10 = {"H2", "H3", "H4", "BODY", "REFLECTION_NAME", "REFLECTION"}
-# INTRO_BODY [U] 2026-10-29, AUTHOR_TAG·INTRO_TITLE·INTRO_IMAGE [U] 2026-11-03: 받은 대로
-SKIP_ROLES = {"SOURCE", "EMPTY", "INTRO_TITLE", "INTRO_IMAGE", "INTRO_BODY", "AUTHOR_TAG"}
+INDENT_10 = {"H2", "H3", "H4", "BODY"}
+# INTRO_BODY [U] 2026-10-29, AUTHOR_TAG·INTRO_TITLE·INTRO_IMAGE [U] 2026-11-03, 이름 줄 [U] 2026-11-04: 받은 대로
+SKIP_ROLES = {"REFLECTION_NAME", "SOURCE", "EMPTY", "INTRO_TITLE", "INTRO_IMAGE", "INTRO_BODY", "AUTHOR_TAG"}
 KEYS = ("intent", "left", "right")
 
 

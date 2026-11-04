@@ -10,8 +10,8 @@ RIGHT_ROLES = {"READING_BYLINE"}
 # SOURCE 는 R08, OBJECT(표 위치)는 받은 대로 [U], EMPTY 는 정렬이 보이지 않으므로 그대로
 # INTRO_BODY(책 소개 내용 칸)는 정렬·들여쓰기를 받은 대로 [U] 2026-10-29
 # TABLE_CELL(일반 표 안 글자) 정렬도 받은 대로 [U] 2026-11-03
-# AUTHOR_TAG·책 소개 표(INTRO_*)도 받은 대로 [U] 2026-11-03
-NOT_HANDLED = {"SOURCE", "OBJECT", "EMPTY", "INTRO_TITLE", "INTRO_IMAGE", "INTRO_BODY", "TABLE_CELL", "AUTHOR_TAG"}
+# AUTHOR_TAG·책 소개 표(INTRO_*)도 받은 대로 [U] 2026-11-03, 이름 줄 [U] 2026-11-04
+NOT_HANDLED = {"REFLECTION_NAME", "SOURCE", "OBJECT", "EMPTY", "INTRO_TITLE", "INTRO_IMAGE", "INTRO_BODY", "TABLE_CELL", "AUTHOR_TAG"}
 
 
 def expected_align(doc, para) -> str:
