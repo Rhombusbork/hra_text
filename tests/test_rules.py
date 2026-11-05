@@ -180,3 +180,79 @@ def test_regression_against_user_correction(tmp_path):
     unexpected = {(d.role, d.attr) for d in diffs} - KNOWN_REFERENCE_MISSES
     assert not unexpected, unexpected
     assert _modifications(run_rules(ours)) == [], "결과를 다시 고치면 바뀌는 게 없어야 한다"
+
+
+# ---- R17 줄바꿈으로 이어진 제목·본문 나누기 ----
+def _lb_p(runs, para=1):
+    """줄바꿈 문단: runs = [(글자, charPr), ...], 글자 속 '\\n' 은 hp:lineBreak."""
+    from xml.sax.saxutils import escape
+
+    body = "".join(
+        f'<hp:run charPrIDRef="{c}"><hp:t>{escape(t).replace(chr(10), "<hp:lineBreak/>")}</hp:t></hp:run>'
+        for t, c in runs)
+    return (f'<hp:p id="0" paraPrIDRef="{para}" styleIDRef="0" pageBreak="0" columnBreak="0" '
+            f'merged="0">{body}</hp:p>')
+
+
+def _r17_doc(tmp_path):
+    from conftest import MEMO, MEMO_END, build_hwpx, p, section_xml
+
+    body = "".join([
+        _lb_p([("표지 줄\n", 0), ("1) 표지 안 번호", 1)]),  # 첫 1단위 타이틀 앞: 나누지 않음
+        p("Ⅰ. 첫 장", char=1, para=1),
+        _lb_p([("본문 끝 문장이다.\n\n", 0), ("  2) 본문 뒤에 붙은 제목", 1)]),  # 본문 + 제목
+        _lb_p([("3) 제목 아래 본문", 1), ("\n 제목 아래 본문입니다.", 0)]),  # 제목 + 본문
+        p(""),
+        p("4) 다음 제목", char=1, para=1),
+        _lb_p([("목록 앞 본문\n1) 진하지 않은 목록\n2) 두 번째 목록", 0)]),  # R17-b: 목록은 본문
+        _lb_p([("본문 첫 줄\n본문 둘째 줄", 0)]),  # 줄 역할 하나
+        _lb_p([("맨 끝에만 줄바꿈\n", 0)]),
+        p("5) 컨트롤 든 문단", char=1, para=1, inner=MEMO,
+          after=MEMO_END).replace("컨트롤 든 문단</hp:t>", "컨트롤 든 문단<hp:lineBreak/>컨트롤 뒤 본문</hp:t>"),
+    ])
+    return build_hwpx(tmp_path / "r17.hwpx", section=section_xml(body))
+
+
+def test_r17_splits_heading_and_body_lines(tmp_path):
+    doc, changes = _fixed(_r17_doc(tmp_path), tmp_path)
+    r17 = [c for c in changes if c.rule_id == "R17"]
+    assert [(c.old, c.new) for c in r17] == [(3, 3), (2, 2)]
+    h = _fmt(doc, _para(doc, "2) 본문 뒤에 붙은 제목", "H3"))
+    assert (h["sizes"], h["bold"], h["intent"]) == ({11.0}, {True}, 10.0)
+    b = _fmt(doc, _para(doc, "제목 아래 본문입니다.", "BODY"))
+    assert (b["sizes"], b["bold"]) == ({10.0}, {False})
+    assert _fmt(doc, _para(doc, "3) 제목 아래 본문", "H3"))["sizes"] == {11.0}
+    # 앞 공백은 R10 이 지운다
+    assert any(p.text == "2) 본문 뒤에 붙은 제목" for p in doc.paras)
+
+
+def test_r17_keeps_blank_line_after_split_body(tmp_path):
+    """'제목+본문' 문단 뒤 빈 줄은 본문 뒤 빈 줄이므로 R09 가 지우지 않는다."""
+    doc, _ = _fixed(_r17_doc(tmp_path), tmp_path)
+    body = [p for p in doc.paras if p.container == "body"]
+    i = next(i for i, p in enumerate(body) if p.text == "제목 아래 본문입니다.")
+    assert body[i + 1].role == "EMPTY" and body[i + 2].text == "4) 다음 제목"
+    # 본문과 붙은 제목 사이 빈 줄 2개 중 1개만 남는다 (R09-a)
+    j = next(i for i, p in enumerate(body) if p.text == "본문 끝 문장이다.")
+    assert body[j + 1].role == "EMPTY" and body[j + 2].text == "2) 본문 뒤에 붙은 제목"
+
+
+def test_r17_leaves_other_line_breaks(tmp_path):
+    doc, _ = _fixed(_r17_doc(tmp_path), tmp_path)
+    texts = [p.text for p in doc.paras if p.container == "body"]
+    assert "목록 앞 본문\n1) 진하지 않은 목록\n2) 두 번째 목록" in texts  # R17-b
+    assert "본문 첫 줄\n본문 둘째 줄" in texts
+    assert "맨 끝에만 줄바꿈\n" in texts
+    assert "표지 줄\n1) 표지 안 번호" in texts
+    assert any(t.startswith("5) 컨트롤 든 문단\n") for t in texts)
+
+
+def test_r17_memo_and_idempotent(tmp_path):
+    from hra_text.memo import Writer, plan
+
+    doc = Document.open(_r17_doc(tmp_path))
+    changes = run_rules(doc)
+    lines = [ln for mp in plan(doc, changes) for ln in Writer().lines(mp)]
+    assert "- 줄바꿈(Shift+Enter) → 문단 나누기: 문단 3개로" in lines
+    out = Document.open(doc.save(tmp_path / "once.hwpx"))
+    assert _modifications(run_rules(out)) == []

@@ -33,6 +33,9 @@ MEMO_TEMPLATES: dict[str, dict[str, str]] = {
     "R16": {
         "page_num": "- 삭제: 쪽 번호",
     },
+    "R17": {
+        "line_break": "- 줄바꿈(Shift+Enter) → 문단 나누기: 문단 {n}개로",
+    },
 }
 
 # FORMAT_RULES §3 공통 문구

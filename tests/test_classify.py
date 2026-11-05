@@ -42,7 +42,7 @@ def test_tab_text_is_read(sample_hwpx):
 
 
 # ---- 로컬 실제 샘플 (커밋 안 됨): 사용자 확인을 거친 역할 개수 회귀 ----
-FEEDBACK = local_samples("*경영서*_피드백.hwpx")
+FEEDBACK = local_samples("*경영서*가이드)_피드백.hwpx")  # 사용자 피드백 원본 (프로그램 결과 _피드백 제외)
 CLASSIC = local_samples("*OOO-고전*.hwp")  # 고전 템플릿만 (실제 제출본 제외)
 
 
