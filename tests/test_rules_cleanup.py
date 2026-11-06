@@ -1,4 +1,4 @@
-"""7단계 규칙: R15 안내문, R16 쪽 번호, R10 앞 공백, R13 숨은 서식, R09 빈 줄, R14 목차."""
+"""7단계 규칙: R15 안내문, R16 쪽 번호, R10 앞 공백, R13 숨은 서식, R14 목차. (R09 빈 줄 정리는 폐기 — 빈 줄은 받은 대로)"""
 
 from hra_text.document import Document
 from hra_text.engine import run_rules
@@ -90,18 +90,21 @@ def test_table_cell_align_bold_color_kept_size_fixed(tmp_path):
     assert (colored.italic, colored.underline) == (False, False), "기울임·밑줄은 표 안이어도 기본값으로"
 
 
-def test_r09_blank_lines(sample_hwpx, tmp_path):
+def test_blank_lines_kept_as_is(sample_hwpx, tmp_path):
+    """R09 폐기 [U] 2026-11-06: 빈 줄 수는 받은 대로 (타이틀 아래·여러 줄·표지 모두)."""
+    def blanks(doc):
+        body = [p for p in doc.paras if p.container == "body" and p.depth == 0]
+        return ["" if p.role == "EMPTY" else (p.text.strip() or "<개체>") for p in body]
+
+    before = blanks(Document.open(sample_hwpx))
     doc, changes = _run(sample_hwpx, tmp_path)
-    body = [p for p in doc.paras if p.container == "body" and p.depth == 0]
-    texts = [p.text.strip() if p.role != "EMPTY" else "" for p in body]
+    texts = blanks(doc)
     i = texts.index("1. 둘째 단위")
-    assert texts[i + 1] == "1) 셋째 단위", "2단위·3단위 타이틀은 붙여 쓴다"
-    j = texts.index("본문입니다→탭 뒤 글자".replace("→", "\t"))
-    assert texts[j + 1] == "" and texts[j + 2] == "강조한 본문", "빈 줄 여러 개는 한 줄로"
-    variants = {c.extra.get("variant") for c in changes if c.rule_id == "R09"}
-    assert {"h2_h3", "too_many"} <= variants
-    k = texts.index("가짜 제목")
-    assert texts[k - 1] == "", "표지 영역 빈 줄은 건드리지 않는다"
+    assert texts[i + 1] == "" and texts[i + 2] == "1) 셋째 단위", "타이틀 아래 빈 줄도 그대로"
+    j = texts.index("본문입니다\t탭 뒤 글자")
+    assert texts[j + 1:j + 4] == ["", "", ""] and texts[j + 4] == "강조한 본문", "여러 줄도 그대로"
+    assert texts.count("") == before.count(""), "빈 줄 수가 바뀌면 안 된다"
+    assert not any(c.key == "blank_lines" for c in changes)
 
 
 def test_r14_toc_count_mismatch_is_memo_only(sample_hwpx, tmp_path):

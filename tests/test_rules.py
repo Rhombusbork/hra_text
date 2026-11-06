@@ -226,13 +226,13 @@ def test_r17_splits_heading_and_body_lines(tmp_path):
     assert any(p.text == "2) 본문 뒤에 붙은 제목" for p in doc.paras)
 
 
-def test_r17_keeps_blank_line_after_split_body(tmp_path):
-    """'제목+본문' 문단 뒤 빈 줄은 본문 뒤 빈 줄이므로 R09 가 지우지 않는다."""
+def test_r17_keeps_blank_lines(tmp_path):
+    """나눈 뒤에도 빈 줄 수는 받은 대로: 원래 빈 문단, 연달은 줄바꿈으로 생긴 빈 줄 모두 남는다."""
     doc, _ = _fixed(_r17_doc(tmp_path), tmp_path)
     body = [p for p in doc.paras if p.container == "body"]
     i = next(i for i, p in enumerate(body) if p.text == "제목 아래 본문입니다.")
     assert body[i + 1].role == "EMPTY" and body[i + 2].text == "4) 다음 제목"
-    # 본문과 붙은 제목 사이 빈 줄 2개 중 1개만 남는다 (R09-a)
+    # 줄바꿈 두 번(빈 줄 1개)은 빈 문단 1개가 된다
     j = next(i for i, p in enumerate(body) if p.text == "본문 끝 문장이다.")
     assert body[j + 1].role == "EMPTY" and body[j + 2].text == "2) 본문 뒤에 붙은 제목"
 

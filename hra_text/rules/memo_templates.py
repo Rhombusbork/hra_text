@@ -8,11 +8,6 @@ MEMO_TEMPLATES: dict[str, dict[str, str]] = {
     "R07": {
         "check": "- 확인 필요: {kind} 배치 (원래 쪽 기준 위치)",
     },
-    "R09": {
-        "blank": "- 빈 줄: {old}줄 → {new}줄{reason}",
-        "h2_h3": " (2·3단위 타이틀 붙여 쓰기)",
-        "heading": " (타이틀 아래 붙여 쓰기)",
-    },
     "R10": {
         "leading_space": "- 문단 앞 공백: {old}칸 삭제",
     },

@@ -26,7 +26,7 @@ ALIGN_NAMES = {"JUSTIFY": "양쪽", "LEFT": "왼쪽", "RIGHT": "오른쪽", "CEN
                "DISTRIBUTE": "배분", "DISTRIBUTE_SPACE": "나눔"}
 PT_KEYS = {"size", "intent", "left", "right", "prev", "next"}
 KEY_ORDER = ("guide", "page_num", "line_break", "leading_space", "spacing", "spacing_check", "treatAsChar", "style", "font", "size", "bold",
-             "default", "align", "intent", "left", "right", "prev", "next", "line", "blank_lines",
+             "default", "align", "intent", "left", "right", "prev", "next", "line",
              "toc", "toc_count")
 
 
@@ -51,8 +51,6 @@ def _value(key: str, v) -> str:
         return f"{v:g}pt"
     if key == "line":
         return f"{v}%"
-    if key == "blank_lines":
-        return f"{v}줄"
     if key == "leading_space":
         return f"{v}칸" if v else "없음"
     return str(v)
@@ -176,9 +174,6 @@ class Writer:
             return t["R11"]["spacing"].format(old=c.old, new=c.new)
         if c.rule_id == "R10":
             return t["R10"]["leading_space"].format(old=c.old)
-        if c.rule_id == "R09":
-            variant = c.extra.get("variant", "too_many")
-            return t["R09"]["blank"].format(old=c.old, new=c.new, reason=t["R09"].get(variant, ""))
         if c.rule_id == "R07":
             return self._item(c, f"글자처럼 취급({c.extra.get('kind', '개체')})")
         return self._item(c)
