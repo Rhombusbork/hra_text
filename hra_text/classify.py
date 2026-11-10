@@ -54,7 +54,8 @@ TABLE_NORMAL = "NORMAL"
 
 GUIDE_COLOR = "#FF0000"
 RE_H1 = re.compile(r"^\s*[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ]\s*\.")
-RE_H2 = re.compile(r"^\s*\d{1,3}\.(?!\d)\s*\S")  # 세 자리(068.)까지 [U] 2026-11-04
+# 세 자리(068.)까지 [U] 2026-11-04, 장 번호(1장. / 제2장:)도 2단위 [U] 2026-11-10
+RE_H2 = re.compile(r"^\s*(?:\d{1,3}\.(?!\d)|(?:제\s*)?\d{1,3}\s*장\s*[.:：])\s*\S")
 RE_H3 = re.compile(r"^\s*\d{1,3}\)\s*\S")
 RE_H4 = re.compile(r"^\s*[①-⑳]")
 RE_SOURCE = re.compile(r"^\s*(사진\s*)?(출처|참고\s*자료|자료)\s*[:：]")

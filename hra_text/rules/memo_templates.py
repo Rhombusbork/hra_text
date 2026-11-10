@@ -5,6 +5,9 @@
 from __future__ import annotations
 
 MEMO_TEMPLATES: dict[str, dict[str, str]] = {
+    "R03": {
+        "heading_check": "- 확인 필요: 제목처럼 보이는 줄 '{text}' (크기·진하게 받은 대로)",
+    },
     "R07": {
         "check": "- 확인 필요: {kind} 배치 (원래 쪽 기준 위치)",
     },

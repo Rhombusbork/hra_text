@@ -256,3 +256,57 @@ def test_r17_memo_and_idempotent(tmp_path):
     assert "- 줄바꿈(Shift+Enter) → 문단 나누기: 문단 3개로" in lines
     out = Document.open(doc.save(tmp_path / "once.hwpx"))
     assert _modifications(run_rules(out)) == []
+
+
+# ---- §1 장 번호 2단위, R03-d 제목처럼 보이는 본문 줄 [U] 2026-11-10 ----
+def test_chapter_number_is_h2():
+    from hra_text.classify import RE_H2
+
+    for s in ("1장. 시작", "14장: 운동에 참여하기", "제2장. 정의", " 3 장 . 학습", "1. 시작", "068. 세 자리"):
+        assert RE_H2.match(s), s
+    for s in ("5장에서 중요한 가정을 찾았다", "14장은 공부 자료다", "1.5배 늘었다", "2장 분량으로 썼다"):
+        assert not RE_H2.match(s), s
+
+
+def _heading_look_doc(tmp_path):
+    from conftest import build_hwpx, p, section_xml
+
+    body = "".join([
+        p("표지의 진한 줄", char=1),  # 표지 영역: R03-d 대상 아님
+        p("Ⅰ. 첫 장", char=1, para=1),
+        p("1장. 시작", char=1),  # 장 번호 → H2
+        p("Chapter 1 시작", char=1),  # 번호 모양 모름 → 제목처럼 보임
+        p("본문인데 진하게 12pt로 쓴 문장입니다.", char=1),  # 마침표로 끝남 → 본문
+        p("진하지 않은 12pt 줄", char=6),  # 10.5pt 보통 → 본문
+        p("보통 본문", char=0),
+    ])
+    return build_hwpx(tmp_path / "look.hwpx", section=section_xml(body))
+
+
+def test_r03d_heading_look_kept_with_memo(tmp_path):
+    from hra_text.memo import Writer, plan
+
+    doc = Document.open(_heading_look_doc(tmp_path))
+    changes = run_rules(doc)
+    out = Document.open(doc.save(tmp_path / "out.hwpx"))
+    h2 = _fmt(out, _para(out, "1장. 시작", "H2"))
+    assert (h2["sizes"], h2["bold"]) == ({12.0}, {True})
+    look = _fmt(out, _para(out, "Chapter 1 시작", "BODY"))
+    assert (look["sizes"], look["bold"]) == ({12.0}, {True}), "크기·진하게 받은 대로"
+    assert look["intent"] == 10.0, "다른 규칙은 그대로"
+    for text in ("본문인데 진하게 12pt로 쓴 문장입니다.", "표지의 진한 줄"):
+        f = _fmt(out, _para(out, text))
+        assert f["bold"] == {False} or text == "표지의 진한 줄"
+    assert _fmt(out, _para(out, "본문인데 진하게 12pt로 쓴 문장입니다."))["sizes"] == {10.0}
+    checks = [c for c in changes if c.key == "heading_check"]
+    assert [c.old for c in checks] == ["Chapter 1 시작"]
+    lines = [ln for mp in plan(doc, changes) for ln in Writer().lines(mp)]
+    assert "- 확인 필요: 제목처럼 보이는 줄 'Chapter 1 시작' (크기·진하게 받은 대로)" in lines
+
+
+def test_r03d_not_repeated_on_feedback_input(tmp_path):
+    from hra_text.fixer import fix_document
+
+    res = fix_document(_heading_look_doc(tmp_path), tmp_path / "o1")
+    again = run_rules(Document.open(res.feedback))
+    assert not [c for c in again if c.key == "heading_check"], "_피드백을 다시 넣으면 같은 지적 안 함"
