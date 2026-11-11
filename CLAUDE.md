@@ -79,10 +79,10 @@ HRA 20기 보고서(경영서·기업실무·고전) hwp/hwpx 파일을 양식�
 
 ### 패스 순서 (의존성)
 ```
-parse → classify(역할) → R15 안내문 삭제 → R16 쪽 번호 제거 → R17 줄바꿈 문단 나누기 → R10 앞공백 → R11 띄어쓰기(텍스트)
+parse → classify(역할) → R15 안내문 삭제 → R16 쪽 번호 제거 → R17 줄바꿈 문단 나누기 → R19 경영서 이름 순서 → R10 앞공백 → R11 띄어쓰기(텍스트)
       → R07 개체(문단 분리 포함, 구조 변경이라 서식 규칙보다 먼저) → R01 스타일 → R02 글꼴
       → R03 크기/볼드 → R13 기본값 복원 → R04 정렬 → R05 들여쓰기 → R06 간격 → R08 출처
-      → R14 표지/목차 → memo → save          # R09 빈 줄 정리는 폐기: 빈 줄 수는 받은 대로 [U] 2026-11-06
+      → R18 11·12pt 줄 위 빈 줄 → R14 표지/목차 → memo → save   # R09 빈 줄 정리는 폐기: 빈 줄은 지우지 않음 [U] 2026-11-06
 ```
 
 ---
@@ -109,7 +109,7 @@ hra_text/
   rules/
     __init__.py       # REGISTRY, register (r??_*.py 자동 로드)
     base.py           # Rule(RULE_ID, NAME, apply(doc) -> list[Change]), ORDER(패스 순서)
-    r01_style.py … r17_line_break.py   # R12는 보류(FORMAT_RULES §6)
+    r01_style.py … r19_name_order.py   # R12는 보류(FORMAT_RULES §6)
     spacing_dict.tsv  # R11-b 교정 사전
     memo_templates.py # FORMAT_RULES §2 메모 문구 (동기화 테스트 대상)
   dump.py             # 문단별 역할·서식 표
