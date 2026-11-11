@@ -11,7 +11,7 @@ KEY_NAMES = {
     "style": "스타일", "font": "글꼴", "size": "글자 크기", "bold": "진하게", "align": "정렬",
     "intent": "들여쓰기", "left": "왼쪽 여백", "right": "오른쪽 여백", "prev": "문단 위 간격",
     "next": "문단 아래 간격", "line": "줄 간격", "treatAsChar": "글자처럼 취급",
-    "guide": "양식 안내 문구", "page_num": "쪽 번호", "leading_space": "문단 앞 공백", "line_break": "줄바꿈 → 문단 나누기",
+    "guide": "양식 안내 문구", "page_num": "쪽 번호", "leading_space": "문단 앞 공백", "line_break": "줄바꿈 → 문단 나누기", "blank_above": "위 빈 줄", "name_order": "느낀 점 순서", "name_missing": "느낀 점 없는 조원",
     "default": "숨은 서식", "spacing": "띄어쓰기", "spacing_check": "띄어쓰기 확인", "heading_check": "제목처럼 보이는 줄 확인", "toc": "목차", "toc_count": "목차 항목 수",
 }
 

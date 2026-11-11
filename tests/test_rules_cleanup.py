@@ -91,7 +91,7 @@ def test_table_cell_align_bold_color_kept_size_fixed(tmp_path):
 
 
 def test_blank_lines_kept_as_is(sample_hwpx, tmp_path):
-    """R09 폐기 [U] 2026-11-06: 빈 줄 수는 받은 대로 (타이틀 아래·여러 줄·표지 모두)."""
+    """R09 폐기 [U] 2026-11-06: 빈 줄은 지우지 않는다 (타이틀 아래·여러 줄·표지 모두). 넣는 것은 R18 뿐."""
     def blanks(doc):
         body = [p for p in doc.paras if p.container == "body" and p.depth == 0]
         return ["" if p.role == "EMPTY" else (p.text.strip() or "<개체>") for p in body]
@@ -103,7 +103,8 @@ def test_blank_lines_kept_as_is(sample_hwpx, tmp_path):
     assert texts[i + 1] == "" and texts[i + 2] == "1) 셋째 단위", "타이틀 아래 빈 줄도 그대로"
     j = texts.index("본문입니다\t탭 뒤 글자")
     assert texts[j + 1:j + 4] == ["", "", ""] and texts[j + 4] == "강조한 본문", "여러 줄도 그대로"
-    assert texts.count("") == before.count(""), "빈 줄 수가 바뀌면 안 된다"
+    added = sum(1 for c in changes if c.key == "blank_above")
+    assert texts.count("") == before.count("") + added, "빈 줄은 줄지 않고 R18 이 넣은 만큼만 는다"
     assert not any(c.key == "blank_lines" for c in changes)
 
 
