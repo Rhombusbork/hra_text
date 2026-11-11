@@ -310,3 +310,19 @@ def test_r03d_not_repeated_on_feedback_input(tmp_path):
     res = fix_document(_heading_look_doc(tmp_path), tmp_path / "o1")
     again = run_rules(Document.open(res.feedback))
     assert not [c for c in again if c.key == "heading_check"], "_피드백을 다시 넣으면 같은 지적 안 함"
+
+
+# ---- 저장 시 모든 문단의 레이아웃 캐시 삭제 [U] 2026-11-11 ----
+def test_layout_cache_dropped_everywhere_on_save(tmp_path):
+    from conftest import build_hwpx, p, section_xml, table
+
+    seg = ('<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1000" textheight="1000" '
+           'baseline="850" spacing="600" horzpos="0" horzsize="42520" flags="393216"/></hp:linesegarray>')
+    body = (p("Ⅰ. 첫 장", char=1, para=1) + p("고칠 것 없는 본문.", para=1)
+            + p(inner=table([[p("표 안 글자", para=1)]])))
+    body = body.replace("</hp:p>", seg + "</hp:p>")
+    src = build_hwpx(tmp_path / "seg.hwpx", section=section_xml(body))
+    doc = Document.open(src)
+    assert doc.pkg.sections()[0].findall(".//hp:linesegarray", NS)
+    out = Document.open(doc.save(tmp_path / "out.hwpx"))
+    assert not out.pkg.sections()[0].findall(".//hp:linesegarray", NS), "고치지 않은 문단·표 안도 캐시 삭제"

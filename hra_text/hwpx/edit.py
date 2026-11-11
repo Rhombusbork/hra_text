@@ -115,10 +115,11 @@ def para_line_spacing(percent: int) -> Callable[[etree._Element], None]:
 
 
 def drop_layout_cache(doc: "Document") -> None:
-    """바뀐 문단의 lineseg 캐시 삭제 (저장 직전)."""
-    for p in doc.touched:
-        for arr in p.findall("hp:linesegarray", NS):
-            p.remove(arr)
+    """모든 문단의 lineseg 캐시 삭제 (저장 직전). 고치지 않은 문단도 지운다 [U] 2026-11-11:
+    다른 도구로 만든 파일은 캐시가 글자 수로 대충 적혀 있어(예: 61자마다) 줄이 엉뚱하게 끊긴다."""
+    for sec in doc.pkg.sections():
+        for arr in list(sec.iter(hp("linesegarray"))):
+            arr.getparent().remove(arr)
 
 
 # ---- 테두리/배경 (borderFill) 변경 함수 ----
