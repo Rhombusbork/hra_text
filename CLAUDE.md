@@ -124,7 +124,7 @@ tests/
 
 ### 핵심 구현 포인트
 - **charPr/paraPr는 공유 객체**: 한 문단의 크기를 바꾸려고 charPr를 직접 고치면 같은 ID를 쓰는 다른 곳도 바뀐다. 항상 "원래 속성 + 변경"으로 새 조합을 만들고 → 같은 조합이 이미 있으면 재사용, 없으면 header에 추가 → 런의 IDRef만 교체.
-- **linesegarray**: 레이아웃 캐시. 서식을 바꾸면 값이 맞지 않게 되므로 수정한 문단의 `hp:linesegarray`를 제거한다 (한글이 열 때 다시 계산). 열리는지 실제 한글로 검증 필요.
+- **linesegarray**: 레이아웃 캐시(줄 나눔 위치). 저장할 때 **모든 문단**의 `hp:linesegarray`를 제거한다 (한글이 열 때 다시 계산) [U] 2026-11-11 — 한글이 아닌 도구로 만든 파일은 캐시가 글자 수로 대충 적혀 있어(예: 61자마다) 고치지 않은 문단도 줄이 엉뚱하게 끊기고 띄어쓰기가 벌어져 보였다.
 - **메모 범위**: 텍스트 범위에 메모를 달려면 런을 분할해 fieldBegin/fieldEnd 컨트롤을 끼워 넣는다. 샘플 구조: `hp:ctrl > hp:fieldBegin[type=MEMO] > hp:parameters + hp:subList > hp:p` … `hp:ctrl > hp:fieldEnd[beginIDRef]`.
 - **문단 여백 단위**: `hh:paraPr`의 여백·줄간격은 `hp:switch` 안 `hp:case`(1pt=100)와 `hp:default`(1pt=200) 두 벌이 있다. 둘 다 같은 pt로 맞춰야 한다 (FORMAT_RULES §0 ※).
 - **텍스트 추출**: `hp:t` 안의 `hp:tab`/`hp:lineBreak` 뒤 tail 텍스트까지 읽는다.
