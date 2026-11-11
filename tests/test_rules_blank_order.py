@@ -145,3 +145,51 @@ def test_r19_only_bizbook_and_no_duplicates(tmp_path):
     (tmp_path / "d").mkdir()
     _, changes = _run(_r19_doc(tmp_path / "d", names=("사아자", "가나다", "사아자")), tmp_path / "d")
     assert not [c for c in changes if c.key == "name_order"], "같은 이름이 두 번이면 순서를 바꾸지 않는다"
+
+
+# ---- R18 4단위, R18-f 긴 본문 사이 [U] 2026-11-11 ----
+LONG = "가나다라마바사아자차카타파하 " * 12  # 한글 168자 + 공백: 본문 폭에서 3줄 이상
+SHORT = "짧은 본문 한 줄."
+
+
+def _r18f_doc(tmp_path):
+    body = "".join([
+        p("Ⅰ. 첫 장", char=1, para=1),
+        p("1) 셋째 단위", char=1, para=1),
+        p("① 셋째 바로 아래 넷째", para=1),  # 3단위 바로 아래: 붙임
+        p(SHORT, para=1),
+        p("② 본문 다음 넷째", para=1),  # 넣음
+        p("③ 넷째 바로 다음 넷째", para=1),  # 목록: 붙임
+        p("2) 넷째 다음 셋째", char=1, para=1),  # 4단위 다음 3단위: 넣음
+        p("긴 첫 문단 " + LONG, para=1),
+        p("긴 둘째 문단 " + LONG, para=1),  # 긴 본문 사이: 넣음
+        p(SHORT, para=1),  # 앞이 길다: 넣음
+        p("짧은 본문 둘.", para=1),  # 짧은 본문끼리: 그대로
+        p("긴 셋째 문단 " + LONG, para=1),  # 뒤가 길다: 넣음
+    ])
+    return build_hwpx(tmp_path / "r18f.hwpx", section=section_xml(body))
+
+
+def test_layout_estimate_three_lines(tmp_path):
+    from hra_text.layout import estimate_lines
+
+    doc = Document.open(_r18f_doc(tmp_path))
+    by = {q.text.strip()[:6]: q for q in doc.paras if q.container == "body"}
+    assert estimate_lines(doc, by["긴 첫 문단"]) >= 3
+    assert estimate_lines(doc, by[SHORT[:6]]) == 1
+
+
+def test_r18_h4_and_long_body(tmp_path):
+    doc, changes = _run(_r18f_doc(tmp_path), tmp_path)
+    t = _body_texts(doc)
+    key = {x: next(s for s in t if s.startswith(x)) for x in ("긴 첫", "긴 둘째", "긴 셋째")}
+    assert _after(t, "① 셋째 바로 아래 넷째")[-1] == "1) 셋째 단위"
+    assert _after(t, "② 본문 다음 넷째") == [SHORT, ""]
+    assert _after(t, "③ 넷째 바로 다음 넷째")[-1] == "② 본문 다음 넷째"
+    assert _after(t, "2) 넷째 다음 셋째") == ["③ 넷째 바로 다음 넷째", ""]
+    assert _after(t, key["긴 둘째"]) == [key["긴 첫"], ""]
+    i = t.index(key["긴 둘째"])
+    assert t[i + 1:i + 3] == ["", SHORT], "앞이 3줄 이상이면 짧은 문단 앞도 띄움"
+    assert t[i + 3] == "짧은 본문 둘.", "짧은 본문끼리는 그대로"
+    assert _after(t, key["긴 셋째"]) == ["짧은 본문 둘.", ""], "뒤가 3줄 이상이면 띄움"
+    assert len([c for c in changes if c.key == "blank_above"]) == 5
