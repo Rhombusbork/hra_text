@@ -11,6 +11,7 @@ dev = ["pytest>=8"]
 hra-fix = "hra_text.cli:main"
 hra-merge = "hra_text.merge.cli:main"
 hra-mail = "hra_text.mail:main"
+hra-write = "hra_text.write:main"
 
 [tool.setuptools.dynamic]
 version = { attr = "hra_text.__version__" }

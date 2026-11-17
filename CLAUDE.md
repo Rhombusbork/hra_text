@@ -212,6 +212,10 @@ hra-merge 폴더 --cover …                                  # 폴더면 종류
 - exe 오류 처리: `packaging/hra_tool.py`가 모든 오류를 `%APPDATA%/HRA보고서도구/error.log`에 남긴다 (창 프로그램은 처리 안 된 오류가 나면 오류 창을 띄우고 멈추므로). 콘솔 출력은 `_echo`로 인코딩 오류 없이.
 - 빌드: `.github/workflows/windows-build.yml` — hwp2hwpx 빌드 → 테스트 → jlink → PyInstaller → exe로 합성 문서 교정 점검 → Artifacts 업로드. (자동 공개 배포 안 함)
 
+## 보고서 새로 쓰기 (hra-write)
+
+Claude 가 한글 보고서를 새로 쓸 때는 hwpx XML 을 직접 다루지 말고, **마크다운 원고 → `hra-write`(기존 수정본을 틀로 복제) → `hra-fix fix`** 순서로 한다(토큰 절약). 형식·순서는 [docs/WRITE.md](docs/WRITE.md). [U] 2026-11-17
+
 ## 개발 명령
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
@@ -223,6 +227,7 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
                                        # → <이름>_피드백.hwpx(메모) + <이름>_수정본.hwpx(메모 없음) + <이름>_변경내역.txt
 .venv/bin/hra-fix compare <우리 결과.hwpx> <사람 수정본>      # 서식 차이 요약
 .venv/bin/hra-merge <파일…> --cover <참고 합본.hwpx> [-o output/합본.hwpx] [--date …] [--order 목록.txt]  # 합본 (메모 제거)
+.venv/bin/hra-write <틀.hwpx> <원고.md> -o out/<이름>.hwpx   # 원고 → 보고서 (docs/WRITE.md)
 .venv/bin/hra-mail setup | check | watch --minutes 5   # 네이버 메일 첨부 자동 교정 (답장 안 함)
 .venv/bin/python -m hra_text.gui                     # 창 (윈도우 Python 필요: tkinter)
 ```
