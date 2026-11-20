@@ -224,10 +224,11 @@ PIC = ('<hp:pic id="5"><hp:pos treatAsChar="1"/><hc:img binaryItemIDRef="{ref}" 
        'effect="REAL_PIC" alpha="0"/></hp:pic>')
 
 
-def build_reference_hapbon(path: Path) -> Path:
-    """참고 합본 흉내: 구역0 표지(그림), 구역1 일정표 + 옛 문서."""
+def build_reference_hapbon(path: Path, old_doc: bool = True) -> Path:
+    """참고 합본 흉내: 구역0 표지(그림), 구역1 일정표 + 옛 문서. old_doc=False 면 표지·일정표만 받은 파일."""
     cover = section_xml(p(inner=PIC.format(ref="image1")) + p("HRA 20기") + p("2026.10.24.(토)"))
-    old_doc = p("■ 고전명작", char=1).replace('pageBreak="0"', 'pageBreak="1"', 1) + p("옛 문서 본문")
+    old = (p("■ 고전명작", char=1).replace('pageBreak="0"', 'pageBreak="1"', 1) + p("옛 문서 본문")
+           + p(inner=PIC.format(ref="image2"))) if old_doc else ""
     body = section_xml(
         p(inner=table([[p("HRA 20기") + p("2026.10.24.(토)")]]))
         + p("■ 고전 명작 (9:00~12:00)", char=1)
@@ -235,7 +236,7 @@ def build_reference_hapbon(path: Path) -> Path:
         + p("■ 특강 (13:00~14:00)", char=1) + p("옛 특강 제목")
         + p("■ 경영서 리뷰 (14:00~)", char=1)
         + p(inner=table([[p("도서명 (저자)"), p("발표자")], [p("옛 경영서"), p("김철수")]]))
-        + old_doc + p(inner=PIC.format(ref="image2"))
+        + old
     )
     return build_hwpx(path, sections=[cover, body], bins={"image1.png": b"COVER", "image2.png": b"OLD"})
 

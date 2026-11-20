@@ -69,6 +69,26 @@ def test_header_reuses_identical_shapes(sample_hwpx, tmp_path):
     assert count(once) == count(twice), "같은 글자 모양은 다시 추가하지 않는다"
 
 
+def test_filled_cover_kept_as_is(sample_hwpx, tmp_path):
+    """표지·일정표만 있는 파일(이미 채운 표지)은 일정표·날짜를 그대로 두고 문서만 붙인다."""
+    ref = build_reference_hapbon(tmp_path / "표지.hwpx", old_doc=False)
+    out = tmp_path / "합본.hwpx"
+    assert merge_main([str(sample_hwpx), "--cover", str(ref), "-o", str(out)]) == 0
+    pkg = HwpxPackage.open(out)
+    assert check(pkg) == []
+    assert "2026.10.24.(토)" in _texts(pkg, 0)
+    body = _texts(pkg)
+    for kept in ("■ 고전 명작 (9:00~12:00)", "옛 책읽고 발표홍길동", "옛 특강 제목", "옛 경영서김철수"):
+        assert kept in "\n".join(body), kept
+    assert "가짜 제목" in body
+    starts = [p for p in pkg.xml(pkg.section_names()[-1]).iterfind("hp:p", NS) if p.get("pageBreak") == "1"]
+    assert len(starts) == 1
+
+    out2 = tmp_path / "합본2.hwpx"
+    assert merge_main([str(sample_hwpx), "--cover", str(ref), "-o", str(out2), "--date", "2026.11.21.(토)"]) == 0
+    assert "2026.11.21.(토)" in _texts(HwpxPackage.open(out2), 0), "--date 를 주면 날짜만 바꾼다"
+
+
 def test_order_file(sample_hwpx, tmp_path):
     ref = build_reference_hapbon(tmp_path / "ref.hwpx")
     order = tmp_path / "합본순서.txt"

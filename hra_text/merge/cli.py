@@ -4,6 +4,8 @@
   hra-merge --order 합본순서.txt --cover 참고합본.hwpx
 
 파일은 적은 순서대로 합친다. 폴더를 주면 종류(고전·에세이·경영서·기업실무) → 파일 이름 순.
+--cover 가 지난 합본(일정표 뒤에 옛 문서)이면 일정표를 새로 채우고, 표지·일정표만 있는 파일이면
+이미 채운 표지로 보고 일정표를 받은 그대로 둔다 (날짜는 --date 를 줄 때만 바꾼다).
 """
 
 from __future__ import annotations
@@ -24,7 +26,8 @@ from .headermap import HeaderMerger
 from .schedule import fill_schedule, para_text, replace_dates
 
 KIND_ORDER = ("classic", "essay", "business", "case", "other")
-KIND_NAMES = {"classic": "고전", "essay": "에세이", "business": "경영서", "case": "기업실무", "other": "기타"}
+KIND_NAMES = {"classic": "고전", "essay": "에세이", "business": "경영서", "case": "기업실무", "other": "기타",
+              "lecture": "특강"}
 
 
 def doc_kind_and_title(doc: Document) -> tuple[str, str]:
@@ -93,14 +96,18 @@ def main(argv: list[str] | None = None) -> int:
             docs.sort(key=lambda x: (KIND_ORDER.index(x[2]), x[0].name))
 
         target = HwpxPackage.open(args.cover)
-        keep_schedule_only(target)
-        for name in target.section_names():
-            replace_dates(target.xml(name), args.date)
-        titles: dict[str, list[str]] = {}
-        for _, _, kind, title in docs:
-            if kind in ("classic", "business", "case") and title and title not in titles.get(kind, []):
-                titles.setdefault(kind, []).append(title)
-        schedule = fill_schedule(body_section(target), titles)
+        filled_cover = keep_schedule_only(target) == 0  # 옛 문서가 없으면 이미 채운 표지
+        if args.date or not filled_cover:
+            for name in target.section_names():
+                replace_dates(target.xml(name), args.date)
+        if filled_cover:
+            schedule = None
+        else:
+            titles: dict[str, list[str]] = {}
+            for _, _, kind, title in docs:
+                if kind in ("classic", "business", "case") and title and title not in titles.get(kind, []):
+                    titles.setdefault(kind, []).append(title)
+            schedule = fill_schedule(body_section(target), titles)
 
         merger = HeaderMerger(target.header)
         new_id = IdCounter(max_object_id(target))
@@ -113,8 +120,12 @@ def main(argv: list[str] | None = None) -> int:
         out = target.save(args.output)
 
     print(f"합본: {out}")
-    print("일정표: " + ", ".join(f"{KIND_NAMES.get(k, k)} {v}" for k, v in schedule.items()))
-    print(f"날짜: {args.date or '빈칸 (직접 입력)'}")
+    if schedule is None:
+        print("일정표: 받은 표지 그대로 (표지·일정표만 있는 파일)")
+        print(f"날짜: {args.date or '받은 표지 그대로'}")
+    else:
+        print("일정표: " + ", ".join(f"{KIND_NAMES.get(k, k)} {v}" for k, v in schedule.items()))
+        print(f"날짜: {args.date or '빈칸 (직접 입력)'}")
     for i, ((f, _, kind, title), md) in enumerate(zip(docs, result.docs), 1):
         print(f"{i:>2}. [{KIND_NAMES[kind]}] {f.name}  — 제목 '{title}', 문단 {md.paragraphs}, "
               f"그림 {md.images}, 뺀 메모 {md.memos_removed}")

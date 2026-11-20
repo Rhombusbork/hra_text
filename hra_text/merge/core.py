@@ -1,6 +1,7 @@
 """합본 만들기: 참고 합본(표지·일정표) + 제출 문서들을 순서대로 이어 붙인다.
 
 - 참고 합본의 구역 0(표지)은 그대로, 구역 1은 일정표 쪽(첫 쪽 나누기 전)만 남긴다.
+  옛 문서가 없는 표지(표지·일정표만 받은 파일)는 일정표를 이미 채운 것으로 보고 그대로 쓴다 (cli).
 - 제출 문서는 본문 문단을 통째로 가져와 첫 문단에 쪽 나누기를 넣는다.
 - 가져올 때: header ID 다시 매기기, 그림 복사, 구역 정의·쪽 번호·머리말 제거, 메모 제거,
   개체·필드 ID 다시 매기기, 레이아웃 캐시 삭제. 서식 교정은 하지 않는다.
@@ -48,14 +49,14 @@ def body_section(pkg: HwpxPackage):
 
 
 def keep_schedule_only(pkg: HwpxPackage) -> int:
-    """본문 구역에서 첫 쪽 나누기 문단부터 끝까지 지운다 (일정표 쪽만 남김). 남은 문단 수."""
+    """본문 구역에서 첫 쪽 나누기 문단부터 끝까지 지운다 (일정표 쪽만 남김). 지운 문단 수."""
     sec = body_section(pkg)
     paras = sec.findall("hp:p", NS)
     cut = next((i for i, p in enumerate(paras) if i > 0 and p.get("pageBreak") == "1"), len(paras))
     for p in paras[cut:]:
         sec.remove(p)
     prune_unused_images(pkg)
-    return cut
+    return len(paras) - cut
 
 
 def _manifest(pkg: HwpxPackage):
