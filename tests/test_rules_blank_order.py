@@ -193,3 +193,54 @@ def test_r18_h4_and_long_body(tmp_path):
     assert t[i + 3] == "짧은 본문 둘.", "짧은 본문끼리는 그대로"
     assert _after(t, key["긴 셋째"]) == ["짧은 본문 둘.", ""], "뒤가 3줄 이상이면 띄움"
     assert len([c for c in changes if c.key == "blank_above"]) == 5
+
+
+# ---- R20 빈 분류 줄 채우기 [U] 2026-11-20 ----
+def _r20_doc(tmp_path, name, first="", char=1):
+    body = "".join([p(first, char=char), p("가짜 책", char=1), p("Ⅰ. 책 소개", char=1, para=1), p("책 본문.", para=1)])
+    return build_hwpx(tmp_path / name, section=section_xml(body))
+
+
+def test_r20_fills_empty_category_from_filename(tmp_path):
+    from hra_text.memo import Writer, plan
+    from hra_text.rules.r20_category import category_from_filename
+
+    assert category_from_filename("hra20_가나다-고전(가짜 책)_수정본.hwpx") == "■ 고전명작"
+    assert category_from_filename("hra20_가나다-에세이(가짜 책).hwp") == "■ 고전명작"
+    assert category_from_filename("HRA20_가나다_경영서(가짜 책).hwp") == "■ 경영서"
+    assert category_from_filename("hra20_1조-기업실무(가짜 과제).hwpx") == "■ 기업실무"
+    assert category_from_filename("보고서.hwpx") is None
+
+    doc = Document.open(_r20_doc(tmp_path, "hra20_가나다-고전(가짜 책).hwpx"))
+    changes = run_rules(doc)
+    lines = [ln for mp in plan(doc, changes) for ln in Writer().lines(mp)]
+    assert "- 분류 줄 비어 있음: '■ 고전명작' 넣음 (파일 이름 기준)" in lines
+    out = Document.open(doc.save(tmp_path / "out.hwpx"))
+    assert [(q.role, q.text) for q in out.paras[:1]] == [("CATEGORY", "■ 고전명작")]
+    assert not [c for c in run_rules(out) if c.rule_id == "R20"], "다시 돌리면 그대로"
+
+
+def test_r20_red_empty_line_becomes_black(tmp_path):
+    """빈 줄 글자 모양이 붉은 안내문 색이어도 넣은 분류 글자는 R15 에 지워지지 않는다."""
+    doc = Document.open(_r20_doc(tmp_path, "hra20_가나다-경영서(가짜 책).hwpx", char=4))  # charPr 4 = 붉은 글씨
+    run_rules(doc)
+    out = Document.open(doc.save(tmp_path / "out.hwpx"))
+    assert (out.paras[0].role, out.paras[0].text) == ("CATEGORY", "■ 경영서")
+    assert not [c for c in run_rules(out) if c.rule_id in ("R15", "R20")]
+
+
+def test_r20_check_only_when_unknown_or_not_empty(tmp_path):
+    for name, first in (("보고서.hwpx", ""), ("hra20_가나다-고전(가짜 책).hwpx", "가짜 표지 줄")):
+        d = tmp_path / str(len(first))
+        d.mkdir()
+        doc = Document.open(_r20_doc(d, name, first))
+        changes = [c for c in run_rules(doc) if c.rule_id == "R20"]
+        assert [c.key for c in changes] == ["category_check"], name
+        assert not any(q.role == "CATEGORY" for q in Document.open(doc.save(d / "o.hwpx")).paras)
+
+
+def test_merge_kind_from_filename_when_category_empty(tmp_path):
+    from hra_text.merge.cli import doc_kind_and_title
+
+    kind, _ = doc_kind_and_title(Document.open(_r20_doc(tmp_path, "hra20_가나다-고전(가짜 책).hwpx")))
+    assert kind == "classic"

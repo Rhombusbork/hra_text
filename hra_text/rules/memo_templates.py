@@ -38,6 +38,10 @@ MEMO_TEMPLATES: dict[str, dict[str, str]] = {
         "name_order": "- 느낀 점 순서: 표지 조원 순서로",
         "name_missing": "- 확인 필요: 느낀 점에 없는 조원 '{names}'",
     },
+    "R20": {
+        "category": "- 분류 줄 비어 있음: '{new}' 넣음 (파일 이름 기준)",
+        "category_check": "- 확인 필요: ■ 분류 줄 없음",
+    },
     "R17": {
         "line_break": "- 줄바꿈(Shift+Enter) → 문단 나누기: 문단 {n}개로",
     },

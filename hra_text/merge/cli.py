@@ -20,6 +20,7 @@ from .. import __version__
 from ..document import Document
 from ..hwpx.ns import NS as NS_P
 from ..hwpx.package import HwpxPackage
+from ..rules.r20_category import category_from_filename
 from .core import (IdCounter, MergeResult, append_document, body_section, keep_schedule_only,
                    max_object_id, set_preview_text)
 from .headermap import HeaderMerger
@@ -32,6 +33,8 @@ KIND_NAMES = {"classic": "고전", "essay": "에세이", "business": "경영서"
 
 def doc_kind_and_title(doc: Document) -> tuple[str, str]:
     category = next((p.text for p in doc.paras if p.role == "CATEGORY"), "")
+    if not category:  # ■ 분류 줄이 비어 있으면 파일 이름으로 (FORMAT_RULES R20)
+        category = category_from_filename(doc.source) or ""
     has_h1 = any(p.role == "H1" for p in doc.paras)
     if "고전" in category:
         kind = "classic" if has_h1 else "essay"

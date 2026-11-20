@@ -25,7 +25,7 @@ from .rules.memo_templates import COMMON, MEMO_TEMPLATES
 ALIGN_NAMES = {"JUSTIFY": "양쪽", "LEFT": "왼쪽", "RIGHT": "오른쪽", "CENTER": "가운데",
                "DISTRIBUTE": "배분", "DISTRIBUTE_SPACE": "나눔"}
 PT_KEYS = {"size", "intent", "left", "right", "prev", "next"}
-KEY_ORDER = ("guide", "page_num", "line_break", "name_order", "name_missing", "leading_space", "spacing", "spacing_check", "treatAsChar", "style", "font", "heading_check", "size", "bold",
+KEY_ORDER = ("guide", "page_num", "category", "category_check", "line_break", "name_order", "name_missing", "leading_space", "spacing", "spacing_check", "treatAsChar", "style", "font", "heading_check", "size", "bold",
              "default", "align", "intent", "left", "right", "prev", "next", "line", "blank_above",
              "toc", "toc_count")
 
@@ -168,6 +168,8 @@ class Writer:
             return t["R18"]["blank_above"]
         if c.rule_id == "R19":
             return t["R19"][c.key].format(names=c.old)
+        if c.rule_id == "R20":
+            return t["R20"][c.key].format(new=c.new)
         if c.rule_id == "R17":
             return t["R17"]["line_break"].format(n=c.new)
         if c.rule_id == "R14":

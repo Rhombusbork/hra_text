@@ -20,7 +20,7 @@ def register(rule_cls):
 RULE_MODULES = ("r01_style", "r02_font", "r03_size_bold", "r04_align", "r05_indent", "r06_spacing",
                 "r07_objects", "r08_source", "r10_leading_space", "r11_spacing",
                 "r13_defaults", "r14_toc", "r15_guide", "r16_page_number", "r17_line_break", "r18_blank_above",
-                "r19_name_order")
+                "r19_name_order", "r20_category")
 
 
 def _load_all() -> None:
