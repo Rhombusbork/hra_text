@@ -178,6 +178,8 @@ tests/
 hra-merge 파일1 파일2 … --cover 참고합본.hwpx [-o output/합본.hwpx] [--date "2026.11.07.(토)"]
 hra-merge --order 합본순서.txt --cover 참고합본.hwpx      # 한 줄에 파일 하나, # 주석
 hra-merge 폴더 --cover …                                  # 폴더면 종류(고전·에세이·경영서·기업실무) → 파일 이름 순
+hra-merge --list 합본.hwpx                                 # 이미 만든 합본 속 문서 목록(번호)
+hra-merge 늦은파일… --insert 합본.hwpx [--at 3] [-o …]      # 3번 문서 앞에 끼워 넣기 (없으면 맨 뒤)
 ```
 - 순서: 적은 순서 그대로 (프로그램은 순서를 모르므로 사용자가 정함).
 - 날짜: `--date`로 표지·일정표 머리 칸 날짜를 바꾼다. 없으면 `20  .   .   .(  )` 빈칸.
@@ -187,8 +189,10 @@ hra-merge 폴더 --cover …                                  # 폴더면 종류
 - 일정표 세부 입력(발표자·분류 등)은 필요해지면 나중에 설정 파일로 확장.
 - **이미 채운 표지** [U] 2026-11-20: `--cover` 가 표지·일정표만 있는 파일(일정표 뒤에 옛 문서 없음, 예: `HRA 20기 텍스트 표지.hwpx`)이면 발표자·특강까지 채운 것으로 보고 일정표를 **받은 그대로** 둔다. 날짜도 `--date` 를 줄 때만 바꾼다. 지난 합본을 주면 위처럼 도서명만 새로 채운다.
 
+- **이미 만든 합본에 끼워 넣기** [U] 2026-11-20 (늦게 온 제출본): 합본 본문 구역에서 **쪽 나누기 + `■` 분류 줄** 문단을 문서 시작으로 본다(일정표의 ■ 세션 줄은 쪽 나누기 없음). `--list` 로 번호·분류·표지 제목을 보여 주고, `--at N` 이면 N번 문서 앞에 넣는다. 가져오기는 합칠 때와 같고(메모 제거 등), 표지·일정표와 한글에서 손으로 고친 내용은 그대로 둔다. 결과는 `합본이름_추가.hwpx`(받은 합본은 덮어쓰지 않음). 창: "합본에 끼워 넣기" 탭. 합본 탭 목록은 줄을 고른 채 파일을 추가하면 그 줄 앞에 들어간다.
+
 ### 구현 (hra_text/merge/)
-- `cli.py` 진입점 `hra-merge` · `core.py` 일정표만 남기기·그림 가져오기·본문 가져오기 · `headermap.py` header ID 다시 매기기(정규형 같으면 재사용, 스타일은 이름으로) · `schedule.py` 날짜·도서명·세션 삭제 · `verify.py` 참조 검사(header ID, 그림, 필드 짝, 개체 ID 중복)
+- `cli.py` 진입점 `hra-merge` · `core.py` 일정표만 남기기·그림 가져오기·본문 가져오기 · `headermap.py` header ID 다시 매기기(정규형 같으면 재사용, 스타일은 이름으로) · `schedule.py` 날짜·도서명·세션 삭제 · `insert.py` 만든 합본의 문서 목록·끼워 넣기 · `verify.py` 참조 검사(header ID, 그림, 필드 짝, 개체 ID 중복)
 
 ### 구현 과제 (hwpx 합치기에서 어려운 부분) — 모두 구현됨
 1. **header ID 다시 매기기**: 문서마다 charPr/paraPr/style/borderFill/font/numbering/bullet/tabPr ID가 따로 매겨져 있다. 가져오는 문서의 ID를 합본 header 기준으로 바꾼다 (같은 정규형이면 재사용 — 이미 있는 `derive` 정규형 비교를 일반화).
@@ -229,6 +233,7 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/hra-fix compare <우리 결과.hwpx> <사람 수정본>      # 서식 차이 요약
 .venv/bin/hra-merge <파일…> --cover <참고 합본.hwpx> [-o output/합본.hwpx] [--date …] [--order 목록.txt]  # 합본 (메모 제거)
 .venv/bin/hra-write <틀.hwpx> <원고.md> -o out/<이름>.hwpx   # 원고 → 보고서 (docs/WRITE.md)
+.venv/bin/hra-merge --list <합본.hwpx> / <파일…> --insert <합본.hwpx> [--at N]   # 만든 합본에 끼워 넣기
 .venv/bin/hra-mail setup | check | watch --minutes 5   # 네이버 메일 첨부 자동 교정 (답장 안 함)
 .venv/bin/python -m hra_text.gui                     # 창 (윈도우 Python 필요: tkinter)
 ```
