@@ -110,3 +110,42 @@ def test_real_merge(tmp_path):
     assert memo_count(pkg) == 0
     pkg.header, pkg.sections()
     pkg.save(tmp_path / "again.hwpx")  # 다시 열고 저장 가능
+
+
+# ---- 이미 만든 합본에 끼워 넣기 [U] 2026-11-20 ----
+def _late_doc(tmp_path, name, title):
+    from conftest import build_hwpx, p, section_xml
+    body = p("■ 경영서", char=1) + p(title, char=1) + p("Ⅰ. 책 소개", char=1, para=1) + p("늦은 본문.", para=1)
+    return build_hwpx(tmp_path / name, section=section_xml(body))
+
+
+def test_insert_into_existing_hapbon(sample_hwpx, tmp_path, capsys):
+    from hra_text.merge.insert import list_documents
+
+    first = _merge(tmp_path, sample_hwpx, sample_hwpx, date="2026.11.21.(토)")
+    hapbon = tmp_path / "합본.hwpx"
+    assert [e.title for e in list_documents(first)] == ["가짜 제목", "가짜 제목"], "일정표 ■ 세션 줄은 문서가 아니다"
+    late = _late_doc(tmp_path, "hra20_가나다-경영서(늦은 책).hwpx", "늦은 책")
+    assert merge_main([str(late), "--insert", str(hapbon), "--at", "2"]) == 0
+    out = tmp_path / "합본_추가.hwpx"
+    pkg = HwpxPackage.open(out)
+    assert check(pkg) == [] and memo_count(pkg) == 0
+    assert [e.title for e in list_documents(pkg)] == ["가짜 제목", "늦은 책", "가짜 제목"]
+    assert _texts(pkg)[:3] == _texts(first)[:3], "일정표는 그대로"
+    assert "2026.11.21.(토)" in _texts(pkg, 0)
+    assert HwpxPackage.open(hapbon).raw("Contents/section1.xml") == first.raw("Contents/section1.xml"), "받은 합본은 그대로"
+
+    assert merge_main([str(late), "--insert", str(out), "-o", str(tmp_path / "끝.hwpx")]) == 0
+    assert [e.title for e in list_documents(HwpxPackage.open(tmp_path / "끝.hwpx"))][-1] == "늦은 책", "--at 없으면 맨 뒤"
+
+    capsys.readouterr()
+    assert merge_main(["--list", str(out)]) == 0
+    assert " 2. ■ 경영서  늦은 책" in capsys.readouterr().out
+
+
+def test_insert_rejects_bad_position_and_overwrite(sample_hwpx, tmp_path):
+    _merge(tmp_path, sample_hwpx)
+    hapbon = tmp_path / "합본.hwpx"
+    for extra in (["--at", "3"], ["-o", str(hapbon)], ["--cover", str(hapbon)]):
+        with pytest.raises(SystemExit):
+            merge_main([str(sample_hwpx), "--insert", str(hapbon), *extra])

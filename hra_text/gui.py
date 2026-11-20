@@ -64,7 +64,7 @@ def run_app() -> None:
     settings = _settings()
     root = tk.Tk()
     root.title("HRA 보고서 도구")
-    root.geometry("760x560")
+    root.geometry("760x640")
     messages: queue.Queue[str] = queue.Queue()
 
     def log(msg: str) -> None:
@@ -89,7 +89,7 @@ def run_app() -> None:
 
     def file_list(parent, *, ordered: bool):
         frame = ttk.Frame(parent)
-        lb = tk.Listbox(frame, selectmode="extended", height=10)
+        lb = tk.Listbox(frame, selectmode="extended", height=10, exportselection=False)
         lb.pack(side="left", fill="both", expand=True)
         bar = ttk.Frame(frame)
         bar.pack(side="left", fill="y", padx=4)
@@ -101,10 +101,15 @@ def run_app() -> None:
                 lb.insert("end", f"{i}. {p.name}" if ordered else p.name)
 
         def add():
-            for f in filedialog.askopenfilenames(filetypes=[("한글 문서", "*.hwp *.hwpx")]):
-                if Path(f) not in paths:
-                    paths.append(Path(f))
+            """고른 줄이 있으면 그 줄 앞에, 없으면 맨 뒤에 넣는다."""
+            sel = lb.curselection()
+            at = sel[0] if sel and ordered else len(paths)
+            new = [Path(f) for f in filedialog.askopenfilenames(filetypes=[("한글 문서", "*.hwp *.hwpx")])]
+            new = [f for k, f in enumerate(new) if f not in paths and f not in new[:k]]
+            paths[at:at] = new
             refresh()
+            if new and ordered:
+                lb.selection_set(at, at + len(new) - 1)
 
         def remove():
             for i in sorted(lb.curselection(), reverse=True):
@@ -157,7 +162,8 @@ def run_app() -> None:
     # ---- 합본 ----
     t2 = ttk.Frame(nb, padding=8)
     nb.add(t2, text="합본")
-    ttk.Label(t2, text="확인을 마친 파일을 추가하고 ▲▼로 순서를 맞춘 뒤 [합본 만들기]. 메모는 빠집니다.").pack(anchor="w")
+    ttk.Label(t2, text="확인을 마친 파일을 추가하고 ▲▼로 순서를 맞춘 뒤 [합본 만들기]. 메모는 빠집니다.\n"
+                       "목록에서 한 줄을 고른 채 [파일 추가]를 누르면 그 줄 앞에 들어갑니다.").pack(anchor="w")
     f2, merge_paths = file_list(t2, ordered=True)
     f2.pack(fill="both", expand=True, pady=6)
     form = ttk.Frame(t2)
@@ -198,6 +204,70 @@ def run_app() -> None:
     ttk.Button(row2, text="합본 만들기", command=do_merge).pack(side="left")
     ttk.Button(row2, text="결과 폴더 열기",
                command=lambda: last_out.get("merge") and open_folder(last_out["merge"])).pack(side="left", padx=6)
+
+    # ---- 합본에 끼워 넣기 ----
+    t4 = ttk.Frame(nb, padding=8)
+    nb.add(t4, text="합본에 끼워 넣기")
+    ttk.Label(t4, text="이미 만든 합본에 늦게 온 파일을 넣습니다. 표지·일정표와 한글에서 고친 내용은 그대로입니다.\n"
+                       "합본을 고르고, 문서 목록에서 넣을 자리(그 문서 앞)를 고른 뒤 [끼워 넣기]. 고르지 않으면 맨 뒤.").pack(anchor="w")
+    hap_var = tk.StringVar()
+    hap_row = ttk.Frame(t4)
+    hap_row.pack(fill="x", pady=4)
+    ttk.Label(hap_row, text="합본").pack(side="left")
+    ttk.Entry(hap_row, textvariable=hap_var, width=60).pack(side="left", fill="x", expand=True, padx=4)
+    doc_lb = tk.Listbox(t4, height=8, exportselection=False)
+
+    def load_docs():
+        from .hwpx.package import HwpxPackage
+        from .merge.insert import list_documents
+
+        doc_lb.delete(0, "end")
+        if not Path(hap_var.get()).is_file():
+            return
+        for e in list_documents(HwpxPackage.open(Path(hap_var.get()))):
+            doc_lb.insert("end", f"{e.number}. {e.category}  {e.title}")
+
+    def pick_hapbon():
+        f = filedialog.askopenfilename(filetypes=[("hwpx", "*.hwpx")])
+        if f:
+            hap_var.set(f)
+            load_docs()
+
+    ttk.Button(hap_row, text="찾기", command=pick_hapbon).pack(side="left")
+    ttk.Label(t4, text="합본 속 문서 (넣을 자리)").pack(anchor="w")
+    doc_lb.pack(fill="both", expand=True)
+    ttk.Label(t4, text="넣을 파일 (적은 순서대로 들어감)").pack(anchor="w", pady=(6, 0))
+    f4, insert_paths = file_list(t4, ordered=True)
+    f4.pack(fill="both", expand=True)
+
+    def do_insert():
+        from .merge.cli import main as merge_main
+
+        hap, files = Path(hap_var.get()), list(insert_paths)
+        if not files or not hap.is_file():
+            messagebox.showinfo("HRA 보고서 도구", "합본(hwpx)과 넣을 파일을 정하세요.")
+            return
+        sel = doc_lb.curselection()
+        out = hap.with_name(f"{hap.stem}_추가.hwpx")
+        n = 2
+        while out.exists():
+            out, n = hap.with_name(f"{hap.stem}_추가{n}.hwpx"), n + 1
+        args = [str(f) for f in files] + ["--insert", str(hap), "-o", str(out)]
+        if sel:
+            args += ["--at", str(sel[0] + 1)]
+        where = f"{sel[0] + 1}번 문서 앞" if sel else "맨 뒤"
+
+        def job():
+            merge_main(args)
+            last_out["insert"] = out.parent
+            log(f"끼워 넣기 완료({where}): {out}")
+        in_background(job)
+
+    row4 = ttk.Frame(t4)
+    row4.pack(anchor="w", pady=6)
+    ttk.Button(row4, text="끼워 넣기", command=do_insert).pack(side="left")
+    ttk.Button(row4, text="결과 폴더 열기",
+               command=lambda: last_out.get("insert") and open_folder(last_out["insert"])).pack(side="left", padx=6)
 
     # ---- 메일 자동 교정 ----
     from . import mail

@@ -183,14 +183,22 @@ def import_body(src: HwpxPackage, maps: dict, bin_map: dict, new_id: IdCounter) 
 
 
 def append_document(target: HwpxPackage, merger: HeaderMerger, src_path: Path, src: HwpxPackage,
-                    new_id: IdCounter) -> MergedDoc:
+                    new_id: IdCounter, before=None) -> MergedDoc:
+    """원본 문서를 합본 끝에 붙인다. before(합본 본문 문단)를 주면 그 문단 앞에 끼워 넣는다."""
     bin_map = import_images(target, src)
     maps = merger.import_header(src.header, bin_map)
     paras, memos = import_body(src, maps, bin_map, new_id)
     sec = body_section(target)
-    for p in paras:
-        sec.append(p)
+    at = sec.index(before) if before is not None else len(sec)
+    for k, p in enumerate(paras):
+        sec.insert(at + k, p)
     return MergedDoc(path=src_path, paragraphs=len(paras), images=len(bin_map), memos_removed=memos)
+
+
+def refresh_preview(target: HwpxPackage) -> None:
+    from .schedule import para_text
+    set_preview_text(target, "\n".join(para_text(p) for name in target.section_names()
+                                       for p in target.xml(name).iterfind("hp:p", NS))[:2000])
 
 
 def set_preview_text(target: HwpxPackage, text: str) -> None:
